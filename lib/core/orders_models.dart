@@ -268,6 +268,8 @@ class OrderDetail {
     this.riderLat,
     this.riderLng,
     this.isPickup = false,
+    this.isDineIn = false,
+    this.tableLabel,
     this.pickupCode,
     this.pickupShopName,
     this.pickupAddress,
@@ -280,6 +282,10 @@ class OrderDetail {
 
   /// A pickup order: the customer collects it, so there is no rider, no map and no delivery code.
   final bool isPickup;
+
+  /// A table order (placed by QR code at the shop): no rider, address or delivery code either. Its status stays open while the table eats.
+  final bool isDineIn;
+  final String? tableLabel;
   final String? pickupCode;
   final String? pickupShopName;
   final String? pickupAddress;
@@ -328,7 +334,7 @@ class OrderDetail {
   final Map<String, num> bill;
 
   bool get isCancelled => status == 'cancelled';
-  bool get isActive => const {'placed', 'accepted', 'processing', 'ready_for_pickup', 'out_for_delivery'}.contains(status);
+  bool get isActive => const {'placed', 'accepted', 'processing', 'ready_for_pickup', 'out_for_delivery'}.contains(status) || (isDineIn && status == 'open');
 
   factory OrderDetail.fromJson(Map<String, dynamic> j) {
     final pickup = j['pickup'] as Map?;
@@ -370,6 +376,8 @@ class OrderDetail {
       riderLat: rider?['lat'] == null ? null : _n(rider!['lat']).toDouble(),
       riderLng: rider?['lng'] == null ? null : _n(rider!['lng']).toDouble(),
       isPickup: j['fulfilment'] == 'pickup',
+      isDineIn: j['fulfilment'] == 'dine_in',
+      tableLabel: _s(j['tableLabel']),
       pickupCode: _s(pickup?['code']),
       pickupShopName: _s(pickupShop?['name']),
       pickupAddress: _s(pickupShop?['address']),
@@ -377,7 +385,7 @@ class OrderDetail {
       pickupLat: pickupShop?['lat'] == null ? null : _n(pickupShop!['lat']).toDouble(),
       pickupLng: pickupShop?['lng'] == null ? null : _n(pickupShop!['lng']).toDouble(),
       pickupPrepMinutes: pickup?['prepMinutes'] == null ? null : _n(pickup!['prepMinutes']).toInt(),
-      amountDue: _n(pickup?['amountDue']),
+      amountDue: _n(pickup?['amountDue'] ?? j['amountDue']),
       bill: bill,
       items: ((j['items'] as List?) ?? const [])
           .map((i) => OrderItemLine(

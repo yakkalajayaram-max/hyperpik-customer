@@ -125,7 +125,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   /// "Cash on delivery · paid", "Paid online · ₹x refunded": the customer's side of the payment state.
   String _paymentLabel(OrderDetail o) {
-    if (o.paymentMethod == 'cod') return o.paymentStatus == 'paid' ? 'Cash on delivery · paid' : 'Cash on delivery';
+    if (o.paymentMethod == 'cod') {
+      if (o.isDineIn) return o.paymentStatus == 'paid' ? 'Paid at the table' : 'Pay at the table';
+      return o.paymentStatus == 'paid' ? 'Cash on delivery · paid' : 'Cash on delivery';
+    }
     switch (o.paymentStatus) {
       case 'paid':
         final refunded = o.refund?.amount ?? 0;
@@ -235,7 +238,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Text(DateFormat('d/M/yyyy, h:mm:ss a').format(o.createdAt).toLowerCase(), style: TextStyle(fontSize: 13, height: 1.33, color: faint)),
         ]),
         const SizedBox(height: 8),
-        Text(o.isPickup || o.addressFull == null ? 'Collect from the shop' : 'Delivering to ${o.addressLabel ?? ''} — ${o.addressFull}', style: TextStyle(fontSize: 14, height: 1.43, color: muted)),
+        Text(o.isDineIn ? 'Dining in at ${o.shopName}${o.tableLabel == null ? '' : ' · ${o.tableLabel!.replaceFirstMapped(RegExp(r'^(table)(\d)', caseSensitive: false), (m) => '${m[1]} ${m[2]}')}'}' : o.isPickup || o.addressFull == null ? 'Collect from the shop' : 'Delivering to ${o.addressLabel ?? ''} — ${o.addressFull}', style: TextStyle(fontSize: 14, height: 1.43, color: muted)),
         const SizedBox(height: 4),
         Text(_paymentLabel(o), style: TextStyle(fontSize: 13, height: 1.33, fontWeight: badPay ? FontWeight.w500 : FontWeight.w500, color: badPay ? Hp.bad : faint)),
         if (showCancel) ...[
@@ -311,8 +314,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // ---- tracking ---------------------------------------------------------------------------------------------------
 
+  /// A table order: the three steps, the table, and what is left to pay. No rider, no PIN, no arrival time.
+  Widget _dineIn(OrderDetail o) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (o.tableLabel != null) ...[
+        _Panel(
+          icon: Icons.restaurant_rounded,
+          title: 'Your table',
+          child: Text(o.tableLabel!.replaceFirstMapped(RegExp(r'^(table)(\d)', caseSensitive: false), (m) => '${m[1]} ${m[2]}'),
+              style: const TextStyle(fontSize: 15, height: 1.4, fontWeight: FontWeight.w600)),
+        ),
+        const SizedBox(height: 16),
+      ],
+      if (o.isCancelled) _cancelledTimeline(o) else _Timeline(steps: o.steps),
+      if (!o.isCancelled && o.amountDue > 0) ...[
+        const SizedBox(height: 16),
+        _Panel(
+          icon: Icons.payments_outlined,
+          title: 'Pay at the table',
+          child: Text('Pay when you are done. Ask the staff for the bill.', style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))),
+        ),
+      ],
+    ]);
+  }
+
   Widget _tracking(OrderDetail o) {
     if (o.isPickup) return _PickupPanel(order: o);
+    if (o.isDineIn) return _dineIn(o);
     final steps = o.steps;
     final hasRider = o.riderName != null || o.riderPhone != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -415,7 +443,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       decoration: cardDecoration(context),
       child: Column(children: [
         row('Item total', '₹${(b['subtotal'] ?? 0).toStringAsFixed(0)}'),
-        row('Delivery', '₹${(b['delivery'] ?? 0).toStringAsFixed(0)}'),
+        if (!o.isDineIn) row('Delivery', '₹${(b['delivery'] ?? 0).toStringAsFixed(0)}'),
         row('Taxes', '₹${(b['tax'] ?? 0).toStringAsFixed(0)}'),
         if ((b['packing'] ?? 0) > 0) row('Packing', '₹${b['packing']!.toStringAsFixed(0)}'),
         if ((b['handling'] ?? 0) > 0) row('Handling', '₹${b['handling']!.toStringAsFixed(0)}'),
