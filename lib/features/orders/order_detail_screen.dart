@@ -263,7 +263,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   badPay
                       ? 'Payment never went through for this one, so nothing was charged — removing it just clears it from your order history.'
                       : prepaid
-                          ? 'A small cancellation charge is kept by Hyperpik and the rest of your ₹${o.total.toStringAsFixed(2)} comes back to you.'
+                          ? 'A small cancellation charge is kept by Hyperpik, and the payment fee the payment processor does not return is deducted. The rest of your ₹${o.total.toStringAsFixed(2)} comes back to you.'
                           : 'Nothing was charged yet — cancelling has no fee.',
                   style: TextStyle(fontSize: 13, height: 1.33, color: muted),
                 ),
