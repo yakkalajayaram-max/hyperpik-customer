@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "363621135704",
+    "project_id": "hyperpik",
+    "storage_bucket": "hyperpik.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:363621135704:android:dbee019038ee31634b612d",
+        "android_client_info": {
+          "package_name": "com.hyperpik.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkcyABGHtWLbLFOqtvo3qg2THpMccohOY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

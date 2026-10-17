@@ -1,0 +1,5 @@
+# Copy to maps.properties and fill in. The Android Maps key from Google Cloud (project "hyperpik", Credentials, the key
+# named "Hyperpik customer app maps (Android)"). It is restricted to the package com.hyperpik.app and to the signing
+# fingerprints listed on the key, so a release build signed with the Play upload/app-signing key needs that key's SHA-1
+# added to the restriction too, or the map shows blank tiles.
+MAPS_API_KEY=
