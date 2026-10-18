@@ -164,7 +164,13 @@ class PlacedOrder {
 }
 
 class OrderSummary {
-  OrderSummary({required this.id, required this.number, required this.shopName, required this.total, required this.status, required this.paymentStatus, required this.createdAt, this.shopImageUrl, this.refundAmount});
+  OrderSummary({required this.id, required this.number, required this.shopName, required this.total, required this.status, required this.paymentStatus, required this.createdAt, this.shopImageUrl, this.refundAmount, this.kind = 'delivery', this.tableLabel});
+
+  /// 'delivery', 'pickup' or 'dine_in'. A table (QR) order sits in the same history but is not an online order: it has
+  /// its own wording and no reorder, courier or refund timeline.
+  final String kind;
+  final String? tableLabel;
+  bool get isDineIn => kind == 'dine_in';
   final String id;
   final String number;
   final String shopName;
@@ -175,9 +181,11 @@ class OrderSummary {
   final DateTime createdAt;
   final num? refundAmount;
 
-  bool get isActive => const {'placed', 'accepted', 'processing', 'ready_for_pickup', 'out_for_delivery'}.contains(status);
+  bool get isActive => const {'placed', 'accepted', 'processing', 'ready_for_pickup', 'out_for_delivery'}.contains(status) || (isDineIn && status == 'open');
 
   factory OrderSummary.fromJson(Map<String, dynamic> j) => OrderSummary(
+        kind: const {'delivery', 'pickup', 'dine_in'}.contains(j['kind']) ? '${j['kind']}' : 'delivery',
+        tableLabel: _s(j['tableLabel']),
         id: '${j['id']}',
         number: '${j['number']}',
         shopName: '${j['shopName'] ?? ''}',

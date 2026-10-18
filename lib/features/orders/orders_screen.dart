@@ -96,16 +96,36 @@ class _OrdersScreenState extends State<OrdersScreen> {
 /// The website's order row labels.
 String _rowLabel(OrderSummary o) {
   if (o.status == 'placed' && const {'pending', 'failed', 'created'}.contains(o.paymentStatus)) return o.paymentStatus == 'failed' ? 'Payment failed' : 'Payment incomplete';
+  // A table order is served and paid at the table: it is never "on the way" or "delivered".
+  if (o.isDineIn) {
+    return switch (o.status) {
+      'placed' => 'Waiting for the shop',
+      'open' || 'accepted' || 'processing' || 'ready_for_pickup' || 'out_for_delivery' => 'In the kitchen',
+      'delivered' => 'Served & paid',
+      'cancelled' => 'Cancelled',
+      _ => o.status,
+    };
+  }
   return switch (o.status) {
     'placed' => 'Order placed',
     'accepted' => 'Confirmed',
     'processing' => 'Preparing',
-    'ready_for_pickup' => 'Ready for pickup',
+    'ready_for_pickup' => o.kind == 'pickup' ? 'Ready to collect' : 'Ready for pickup',
     'out_for_delivery' => 'On the way',
-    'delivered' => 'Delivered',
+    'delivered' => o.kind == 'pickup' ? 'Collected' : 'Delivered',
     'cancelled' => 'Cancelled',
     _ => o.status,
   };
+}
+
+/// "Dine in · Table 4" / "Pickup" under a row's order number; null for an ordinary delivery.
+String? _kindLine(OrderSummary o) {
+  if (o.isDineIn) {
+    final t = (o.tableLabel ?? '').trim();
+    final label = t.isEmpty ? 'your table' : t.replaceFirstMapped(RegExp(r'^(table)\s*(\d)', caseSensitive: false), (m) => '${m[1]} ${m[2]}');
+    return 'Dine in · $label';
+  }
+  return o.kind == 'pickup' ? 'Pickup' : null;
 }
 
 class _OrderCard extends StatelessWidget {
@@ -154,6 +174,10 @@ class _OrderCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   HpBadge(_rowLabel(order), tone: incomplete ? BadgeTone.warn : tone),
                 ]),
+                if (_kindLine(order) != null) ...[
+                  const SizedBox(height: 4),
+                  Text(_kindLine(order)!, style: TextStyle(fontSize: 13, height: 1.33, color: Hp.faint(context))),
+                ],
               ]),
             ),
           ]),

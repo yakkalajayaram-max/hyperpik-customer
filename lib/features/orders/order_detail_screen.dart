@@ -180,7 +180,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           padding: const EdgeInsets.only(bottom: 32),
           child: Wrap(spacing: 12, runSpacing: 12, children: [
             OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => IssueScreen(orderId: o.id, orderNumber: o.number))), child: const Text('Report an issue with this order')),
-            if (o.status == 'delivered' || o.isCancelled) OutlinedButton(onPressed: _reordering ? null : _reorder, child: Text(_reordering ? 'Adding…' : 'Order again')),
+            // Not for a table order: it was priced and served at the table, so "again" would be a different, delivered order.
+            if ((o.status == 'delivered' || o.isCancelled) && !o.isDineIn) OutlinedButton(onPressed: _reordering ? null : _reorder, child: Text(_reordering ? 'Adding…' : 'Order again')),
           ]),
         ),
         Row(children: [
