@@ -339,12 +339,38 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _tracking(OrderDetail o) {
+    final body = _trackingBody(o);
+    final at = o.scheduledFor;
+    if (at == null || !o.isActive) return body;
+    // A scheduled order shows the time the customer asked for instead of an estimate.
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Hp.tint(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Hp.accent.withValues(alpha: 0.3), width: 0.8)),
+        child: Row(children: [
+          Container(width: 48, height: 48, decoration: BoxDecoration(color: Hp.accent, borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.schedule_rounded, color: Colors.white, size: 24)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(o.isPickup ? 'SCHEDULED PICKUP' : 'SCHEDULED DELIVERY', style: TextStyle(fontSize: 13, height: 1.33, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: Hp.faint(context))),
+              Text(istTime(at), style: const TextStyle(fontSize: 20, height: 1.4, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+              Text(o.isPickup ? 'It will be ready to collect then.' : 'It will reach you then.', style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))),
+            ]),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 16),
+      body,
+    ]);
+  }
+
+  Widget _trackingBody(OrderDetail o) {
     if (o.isPickup) return _PickupPanel(order: o);
     if (o.isDineIn) return _dineIn(o);
     final steps = o.steps;
     final hasRider = o.riderName != null || o.riderPhone != null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (o.estimateFrom != null && o.estimateTo != null && o.isActive) ...[_EtaBanner(order: o), const SizedBox(height: 16)],
+      if (o.estimateFrom != null && o.estimateTo != null && o.isActive && o.scheduledFor == null) ...[_EtaBanner(order: o), const SizedBox(height: 16)],
       if (o.isCancelled)
         _cancelledTimeline(o)
       else

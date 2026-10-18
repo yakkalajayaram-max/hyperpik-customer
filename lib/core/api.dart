@@ -157,8 +157,10 @@ class Api {
         'couponCode': coupon,
       }));
 
-  static Future<PlacedOrder> placeOrder({required String shopId, String? addressId, bool pickup = false, required String method, String? coupon, String? note, String? contactPhone}) async =>
+  static Future<PlacedOrder> placeOrder({required String shopId, String? addressId, bool pickup = false, required String method, String? coupon, String? note, String? contactPhone, DateTime? scheduledFor}) async =>
       PlacedOrder.fromJson(await _post('/api/customer/checkout', {
+        // "Schedule for later": a time the quote offered, sent as an instant. Left out for as soon as possible.
+        if (scheduledFor != null) 'scheduledFor': scheduledFor.toUtc().toIso8601String(),
         'vendorId': shopId,
         if (addressId != null) 'addressId': addressId,
         'fulfilment': pickup ? 'pickup' : 'delivery',

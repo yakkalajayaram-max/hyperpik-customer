@@ -41,6 +41,9 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
   /// delivery it was typed for.
   String? _contactOverride;
   bool _pickup = false;
+
+  /// The time chosen under "Schedule for later", or null for as soon as possible.
+  DateTime? _slot;
   String _method = 'razorpay';
   Quote? _quote;
   List<OfferInfo> _offers = const [];
@@ -183,7 +186,19 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
         }
         q = await Api.quote(shopId: cart.shopId, addressId: _pickup ? null : _addressId, pickup: _pickup, method: _method);
       }
-      if (mounted) setState(() => _quote = q);
+      if (mounted) {
+        setState(() {
+          _quote = q;
+          // A chosen time the shop no longer offers (the clock moved on, or pickup/delivery was switched) is dropped.
+          if (_slot != null && !q.slots.any((s) => s.isAtSameMomentAs(_slot!))) _slot = null;
+        });
+      }
+      // The admin switched the chosen method off (e.g. cash on delivery): move to one that is on and price again.
+      if (q.paymentMethods.isNotEmpty && !q.paymentMethods.contains(_method)) {
+        if (mounted) setState(() => _method = q.paymentMethods.first);
+        _price();
+        return;
+      }
       _loadOffers(q);
     } on ApiException catch (e) {
       if (_wantsPhone(e.message) && await _askPhone()) {
@@ -298,6 +313,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
         coupon: _applied,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         contactPhone: _pickup ? null : _contactOverride,
+        scheduledFor: _slot,
       );
       if (!order.online) {
         _done(order.orderId);
@@ -600,6 +616,48 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
     );
   }
 
+  /// "As soon as possible" or "Schedule for later" with today's times. Hidden when the shop has none left today.
+  Widget _whenSection() {
+    final slots = _quote?.slots ?? const <DateTime>[];
+    if (slots.isEmpty) return const SizedBox.shrink();
+    final later = _slot != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _h2(_pickup ? 'When do you want to collect it?' : 'When do you want it delivered?'),
+        Row(children: [
+          for (final w in const [(false, 'As soon as possible', 'Now'), (true, 'Schedule for later', 'Pick a time today')]) ...[
+            Expanded(
+              child: _choice(
+                on: later == w.$1,
+                padding: const EdgeInsets.all(12),
+                onTap: () => setState(() => _slot = w.$1 ? (_slot ?? slots.first) : null),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(w.$2, style: const TextStyle(fontSize: 14, height: 1.43, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(w.$3, style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))),
+                ]),
+              ),
+            ),
+            if (!w.$1) const SizedBox(width: 8),
+          ],
+        ]),
+        if (later)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final s in slots)
+                ChoiceChip(
+                  label: Text(istTime(s)),
+                  selected: s.isAtSameMomentAs(_slot!),
+                  onSelected: (_) => setState(() => _slot = s),
+                ),
+            ]),
+          ),
+      ]),
+    );
+  }
+
   Widget _whereSection() {
     final cart = _cart!;
     if (_pickup) {
@@ -761,7 +819,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
           for (final m in [
             ('razorpay', Icons.credit_card_outlined, 'UPI / Card / Netbanking', 'Razorpay'),
             ('cod', Icons.payments_outlined, _pickup ? 'Pay at the shop' : 'Cash on delivery', 'Pay when it arrives'),
-          ])
+          ].where((m) => (_quote?.paymentMethods ?? const ['razorpay']).contains(m.$1)))
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _choice(
@@ -977,6 +1035,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
         else ...[
           _offers_(),
           if (offersPickup) _howSection(),
+          _whenSection(),
           _whereSection(),
           _emailSection(),
           _paymentSection(),

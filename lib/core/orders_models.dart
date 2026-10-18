@@ -53,6 +53,13 @@ class Address {
       );
 }
 
+/// "7:30 PM" in India time, whatever the phone's own time zone is set to (shops and customers here are all in IST).
+String istTime(DateTime d) {
+  final t = d.toUtc().add(const Duration(hours: 5, minutes: 30));
+  final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
+  return '$h:${t.minute.toString().padLeft(2, '0')} ${t.hour < 12 ? 'AM' : 'PM'}';
+}
+
 class Quote {
   Quote({
     required this.subtotal,
@@ -72,7 +79,16 @@ class Quote {
     this.deliveryGross = 0,
     this.deliveryVendorPays = 0,
     this.etaNote,
+    this.paymentMethods = const ['razorpay'],
+    this.slots = const [],
   });
+
+  /// Today's times the customer can schedule this order for ("schedule for later"), earliest first. Empty when the
+  /// shop has none left today, which hides the choice.
+  final List<DateTime> slots;
+
+  /// The payment methods the admin has switched on ("razorpay", "cod"); only these are offered at checkout.
+  final List<String> paymentMethods;
 
   /// The handling fee is waived: the bill strikes through what it would have been.
   final bool handlingWaived;
@@ -117,6 +133,11 @@ class Quote {
         deliveryGross: _n(j['deliveryGross']),
         deliveryVendorPays: _n(j['deliveryVendorPays']),
         etaNote: _s(j['etaNote']),
+        paymentMethods: [for (final m in (j['paymentMethods'] as List?) ?? const ['razorpay']) m.toString()],
+        slots: [
+          for (final s in ((j['schedule'] as Map?)?['slots'] as List?) ?? const [])
+            if (DateTime.tryParse('$s') != null) DateTime.parse('$s'),
+        ],
       );
 }
 
@@ -258,6 +279,7 @@ class OrderDetail {
     this.cancelledLabel,
     this.cancelledDetail,
     this.refund,
+    this.scheduledFor,
     this.canReview = false,
     this.reviewRating,
     this.reviewComment,
@@ -329,6 +351,9 @@ class OrderDetail {
   final String? cancelledLabel;
   final String? cancelledDetail;
   final RefundInfo? refund;
+
+  /// The time the customer scheduled this for (ready for pickup / arriving), or null for as soon as possible.
+  final DateTime? scheduledFor;
   final List<OrderItemLine> items;
   final List<OrderStep> steps;
   final Map<String, num> bill;
@@ -350,6 +375,7 @@ class OrderDetail {
       shopName: '${(j['shop'] as Map?)?['name'] ?? ''}',
       total: bill['total'] ?? 0,
       createdAt: DateTime.tryParse('${j['createdAt']}')?.toLocal() ?? DateTime.now(),
+      scheduledFor: j['scheduledFor'] == null ? null : DateTime.tryParse('${j['scheduledFor']}')?.toLocal(),
       paymentMethod: '${(j['payment'] as Map?)?['method'] ?? ''}',
       paymentStatus: '${(j['payment'] as Map?)?['status'] ?? ''}',
       canCancel: j['canCancel'] == true,
