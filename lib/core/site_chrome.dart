@@ -259,8 +259,11 @@ Widget loginPromptPage(BuildContext context, {required IconData icon, required S
 /// A page of the website: the sticky bar and the location/search band, then the page's own content at 16 px from the
 /// edges and 24 px from the band, as `<main className="px-4 py-6">` has it.
 class SitePage extends StatelessWidget {
-  const SitePage({super.key, required this.children, this.onRefresh, this.onAuthChanged, this.bottom = 24, this.unread = 0});
+  const SitePage({super.key, required this.children, this.onRefresh, this.onAuthChanged, this.bottom = 24, this.unread = 0, this.bottomBar});
   final List<Widget> children;
+
+  /// A bar pinned to the bottom of the screen while the page scrolls (the cart's pay bar), above the navigation bar.
+  final Widget? bottomBar;
   final Future<void> Function()? onRefresh;
   final VoidCallback? onAuthChanged;
   final double bottom;
@@ -276,7 +279,11 @@ class SitePage extends StatelessWidget {
         SliverToBoxAdapter(child: DockSpacer(base: bottom)),
       ],
     );
-    return Scaffold(body: onRefresh == null ? scroll : RefreshIndicator(onRefresh: onRefresh!, child: scroll), bottomNavigationBar: pushedNavBar(context));
+    final nav = pushedNavBar(context);
+    return Scaffold(
+      body: onRefresh == null ? scroll : RefreshIndicator(onRefresh: onRefresh!, child: scroll),
+      bottomNavigationBar: bottomBar == null ? nav : Column(mainAxisSize: MainAxisSize.min, children: [bottomBar!, ?nav]),
+    );
   }
 }
 

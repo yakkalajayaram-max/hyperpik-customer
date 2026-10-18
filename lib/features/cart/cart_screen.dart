@@ -867,7 +867,6 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
     final muted = Hp.muted(context);
     final faint = Hp.faint(context);
     final total = q?.total;
-    final canPay = !closed && !_placing && !_pricing && q != null && (_pickup || _addressId != null);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: cardDecoration(context),
@@ -921,16 +920,48 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
           ]),
         ),
         if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(fontSize: 14, height: 1.43, color: Hp.bad))),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: FilledButton(
-            onPressed: canPay ? _place : null,
-            child: Text(closed ? 'Store is closed' : _placing ? 'Placing order…' : _method == 'cod' ? 'Place order' : (total == null ? 'Pay' : 'Pay ₹${total.toStringAsFixed(2)}')),
-          ),
-        ),
       ]),
+    );
+  }
+
+  /// The pay button, pinned to the bottom of the screen so it is always in reach however far the page is scrolled, with the
+  /// total beside it. Any error ("Choose a delivery address", a refused order) shows here too, since the summary it also
+  /// appears in can be far off screen.
+  Widget _payBar(bool closed) {
+    final q = _quote;
+    final total = q?.total;
+    final canPay = !closed && !_placing && !_pricing && q != null && (_pickup || _addressId != null);
+    final label = closed ? 'Store is closed' : _placing ? 'Placing order…' : _method == 'cod' ? 'Place order' : (total == null ? 'Pay' : 'Pay ₹${total.toStringAsFixed(2)}');
+    return Material(
+      color: Hp.surface(context),
+      elevation: 12,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (_error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(_error!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, height: 1.33, color: Hp.bad))),
+            Row(children: [
+              Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Total', style: TextStyle(fontSize: 12, height: 1.2, color: Hp.muted(context))),
+                const SizedBox(height: 2),
+                Text(total == null ? (_pricing ? '…' : '—') : '₹${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, height: 1.2, fontWeight: FontWeight.w700)),
+              ]),
+              const SizedBox(width: 16),
+              Expanded(
+                child: SizedBox(
+                  height: 48,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    onPressed: canPay ? _place : null,
+                    child: Text(label),
+                  ),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      ),
     );
   }
 
@@ -966,6 +997,8 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
 
     return SitePage(
       bottom: 40,
+      // Signed-in shoppers get the pay button pinned to the bottom of the screen; the log-in card has nothing to pay yet.
+      bottomBar: signedIn ? _payBar(closed) : null,
       onAuthChanged: () {
         setState(() {});
         _loadAddresses();
