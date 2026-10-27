@@ -5,15 +5,18 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../core/map_style.dart';
 import '../../core/theme.dart';
+import 'map_icons.dart';
 
 /// Where the order is: the shop, the customer's door and, once a rider has it, the rider, on Google Maps. The view fits
 /// all the points. As the website's map: a 288 px rounded card, zoom buttons, and a legend line.
 class LiveMap extends StatefulWidget {
-  const LiveMap({super.key, this.shop, this.drop, this.rider, required this.shopName});
+  const LiveMap({super.key, this.shop, this.drop, this.rider, required this.shopName, this.shopImageUrl, this.route = const []});
   final (double, double)? shop;
   final (double, double)? drop;
   final (double, double)? rider;
   final String shopName;
+  final String? shopImageUrl;
+  final List<(double, double)> route;
 
   @override
   State<LiveMap> createState() => _LiveMapState();
@@ -21,6 +24,22 @@ class LiveMap extends StatefulWidget {
 
 class _LiveMapState extends State<LiveMap> {
   GoogleMapController? _map;
+  BitmapDescriptor? _shopPin;
+  BitmapDescriptor? _homePin;
+  BitmapDescriptor? _bikePin;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPins();
+  }
+
+  Future<void> _loadPins() async {
+    final shop = await shopPin(widget.shopImageUrl);
+    final home = await iconPin('home', Icons.home_rounded, const Color(0xFF16A34A));
+    final bike = await iconPin('bike', Icons.two_wheeler_rounded, Hp.accent);
+    if (mounted) setState(() { _shopPin = shop; _homePin = home; _bikePin = bike; });
+  }
 
   LatLng _l((double, double) p) => LatLng(p.$1, p.$2);
 
@@ -50,7 +69,7 @@ class _LiveMapState extends State<LiveMap> {
   void didUpdateWidget(LiveMap old) {
     super.didUpdateWidget(old);
     // The rider moved or appeared: keep everyone in view.
-    if (old.rider != widget.rider || old.shop != widget.shop || old.drop != widget.drop) _fit();
+    if (old.rider != widget.rider || old.shop != widget.shop || old.drop != widget.drop || old.route.length != widget.route.length) _fit();
   }
 
   @override
@@ -66,72 +85,37 @@ class _LiveMapState extends State<LiveMap> {
     final rider = widget.rider;
     final points = _points;
     if (points.isEmpty) return const SizedBox.shrink();
+    const centre = Offset(0.5, 0.5);
 
-    Widget legend(Color c, String label) => Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 10, height: 10, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))),
-        ]);
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(
-        height: 288,
-        decoration: BoxDecoration(color: Hp.surface2(context), borderRadius: BorderRadius.circular(24), border: Border.all(color: Hp.line(context), width: 0.8)),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(target: points.first, zoom: 15),
-            onMapCreated: (c) {
-              _map = c;
-              // After the first layout, or the bounds are fitted to a map that has no size yet.
-              Future<void>.delayed(const Duration(milliseconds: 350), _fit);
-            },
-            style: Hp.isDark(context) ? kDarkMapStyle : null,
-            zoomControlsEnabled: false,
-            myLocationButtonEnabled: false,
-            mapToolbarEnabled: false,
-            compassEnabled: false,
-            rotateGesturesEnabled: false,
-            tiltGesturesEnabled: false,
-            // The map is inside a scrolling page: it takes the touch when a finger is on it, so it can be panned.
-            gestureRecognizers: {Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer())},
-            markers: {
-              if (shop != null) Marker(markerId: const MarkerId('shop'), position: _l(shop), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange), infoWindow: InfoWindow(title: widget.shopName)),
-              if (drop != null) Marker(markerId: const MarkerId('drop'), position: _l(drop), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen), infoWindow: const InfoWindow(title: 'You')),
-              if (rider != null) Marker(markerId: const MarkerId('rider'), position: _l(rider), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet), infoWindow: const InfoWindow(title: 'Rider'), zIndexInt: 2),
-            },
-            polylines: {
-              if (shop != null && drop != null)
-                Polyline(
-                  polylineId: const PolylineId('route'),
-                  points: [_l(shop), _l(drop)],
-                  width: 4,
-                  color: Hp.accent.withValues(alpha: 0.7),
-                  patterns: [PatternItem.dash(18), PatternItem.gap(12)],
-                ),
-            },
-          ),
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: Container(
-              decoration: BoxDecoration(color: Hp.surface(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Hp.line(context), width: 0.8)),
-              clipBehavior: Clip.antiAlias,
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                InkWell(onTap: () => _map?.animateCamera(CameraUpdate.zoomIn()), child: const SizedBox(width: 40, height: 40, child: Icon(Icons.add_rounded, size: 20))),
-                Container(height: 1, width: 40, color: Hp.line(context)),
-                InkWell(onTap: () => _map?.animateCamera(CameraUpdate.zoomOut()), child: const SizedBox(width: 40, height: 40, child: Icon(Icons.remove_rounded, size: 20))),
-              ]),
-            ),
-          ),
-        ]),
+    return Container(
+      height: 240,
+      decoration: BoxDecoration(color: Hp.surface2(context), borderRadius: BorderRadius.circular(20), border: Border.all(color: Hp.line(context), width: 0.8)),
+      clipBehavior: Clip.antiAlias,
+      child: GoogleMap(
+        initialCameraPosition: CameraPosition(target: points.first, zoom: 15),
+        onMapCreated: (c) {
+          _map = c;
+          // After the first layout, or the bounds are fitted to a map that has no size yet.
+          Future<void>.delayed(const Duration(milliseconds: 350), _fit);
+        },
+        style: Hp.isDark(context) ? kDarkMapStyle : null,
+        zoomControlsEnabled: false,
+        myLocationButtonEnabled: false,
+        mapToolbarEnabled: false,
+        compassEnabled: false,
+        rotateGesturesEnabled: false,
+        tiltGesturesEnabled: false,
+        // The map is inside a scrolling page: it takes the touch when a finger is on it, so it can be panned.
+        gestureRecognizers: {Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer())},
+        polylines: {
+          if (widget.route.length >= 2) Polyline(polylineId: const PolylineId('route'), points: [for (final p in widget.route) _l(p)], width: 5, color: Hp.accent, jointType: JointType.round, startCap: Cap.roundCap, endCap: Cap.roundCap),
+        },
+        markers: {
+          if (shop != null && _shopPin != null) Marker(markerId: const MarkerId('shop'), position: _l(shop), icon: _shopPin!, anchor: centre),
+          if (drop != null && _homePin != null) Marker(markerId: const MarkerId('drop'), position: _l(drop), icon: _homePin!, anchor: centre),
+          if (rider != null && _bikePin != null) Marker(markerId: const MarkerId('rider'), position: _l(rider), icon: _bikePin!, anchor: centre, zIndexInt: 2),
+        },
       ),
-      const SizedBox(height: 10),
-      Wrap(spacing: 12, runSpacing: 4, children: [
-        if (shop != null) legend(const Color(0xFFF97316), widget.shopName),
-        if (drop != null) legend(Hp.ok, 'You'),
-        if (rider != null) legend(Hp.accent, 'Rider'),
-      ]),
-    ]);
+    );
   }
 }

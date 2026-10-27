@@ -238,8 +238,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Expanded(child: Text('Order ${o.number}', style: const TextStyle(fontSize: 14, height: 1.43, fontWeight: FontWeight.w600))),
           Text(DateFormat('d/M/yyyy, h:mm:ss a').format(o.createdAt).toLowerCase(), style: TextStyle(fontSize: 13, height: 1.33, color: faint)),
         ]),
+        if (o.isDineIn || o.isPickup || o.addressFull == null) ...[
         const SizedBox(height: 8),
-        Text(o.isDineIn ? 'Dining in at ${o.shopName}${o.tableLabel == null ? '' : ' · ${o.tableLabel!.replaceFirstMapped(RegExp(r'^(table)(\d)', caseSensitive: false), (m) => '${m[1]} ${m[2]}')}'}' : o.isPickup || o.addressFull == null ? 'Collect from the shop' : 'Delivering to ${o.addressLabel ?? ''} — ${o.addressFull}', style: TextStyle(fontSize: 14, height: 1.43, color: muted)),
+        Text(o.isDineIn ? 'Dining in at ${o.shopName}${o.tableLabel == null ? '' : ' · ${o.tableLabel!.replaceFirstMapped(RegExp(r'^(table)(\d)', caseSensitive: false), (m) => '${m[1]} ${m[2]}')}'}' : o.isPickup || o.addressFull == null ? 'Collect from the shop' : '', style: TextStyle(fontSize: 14, height: 1.43, color: muted)),
+        ],
         const SizedBox(height: 4),
         Text(_paymentLabel(o), style: TextStyle(fontSize: 13, height: 1.33, fontWeight: badPay ? FontWeight.w500 : FontWeight.w500, color: badPay ? Hp.bad : faint)),
         if (showCancel) ...[
@@ -285,9 +287,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ]),
               ]),
             ),
-        ] else if (!o.isCancelled && o.isActive && o.cannotCancelReason != null) ...[
-          const SizedBox(height: 12),
-          Text(o.cannotCancelReason!, style: TextStyle(fontSize: 13, height: 1.33, color: faint)),
         ],
       ]),
     );
@@ -401,7 +400,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
           if (o.dropLat != null || o.shopLat != null) ...[
             const SizedBox(height: 12),
-            LiveMap(shop: _pt(o.shopLat, o.shopLng), drop: _pt(o.dropLat, o.dropLng), rider: _pt(o.riderLat, o.riderLng), shopName: o.shopName),
+            LiveMap(shop: _pt(o.shopLat, o.shopLng), drop: _pt(o.dropLat, o.dropLng), rider: _pt(o.riderLat, o.riderLng), shopName: o.shopName, shopImageUrl: o.shopImageUrl, route: o.routePoints),
           ],
         ],
       ],
@@ -578,13 +577,24 @@ class _EtaBanner extends StatelessWidget {
 }
 
 /// The steps of the order in one card: a green tick for each that has happened, a line joining them.
-class _Timeline extends StatelessWidget {
+class _Timeline extends StatefulWidget {
   const _Timeline({required this.steps});
   final List<OrderStep> steps;
 
   @override
+  State<_Timeline> createState() => _TimelineState();
+}
+
+class _TimelineState extends State<_Timeline> {
+  bool _open = false;
+
+  @override
   Widget build(BuildContext context) {
-    final lastReached = steps.lastIndexWhere((s) => s.reached);
+    final all = widget.steps;
+    final lastReached = all.lastIndexWhere((s) => s.reached);
+    // Collapsed: only where the order is now. Opened: every step.
+    final steps = _open || lastReached < 0 ? all : [all[lastReached]];
+    final shownLast = _open ? lastReached : 0;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: cardDecoration(context),
@@ -603,7 +613,7 @@ class _Timeline extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: steps[i].reached ? Hp.ok : null,
                       border: steps[i].reached ? null : Border.all(color: Hp.lineStrong(context), width: 0.8),
-                      boxShadow: i == lastReached ? [BoxShadow(color: Hp.ok.withValues(alpha: 0.15), spreadRadius: 4)] : null,
+                      boxShadow: i == shownLast ? [BoxShadow(color: Hp.ok.withValues(alpha: 0.15), spreadRadius: 4)] : null,
                     ),
                     child: steps[i].reached ? const Icon(Icons.check_rounded, size: 14, color: Colors.white) : null,
                   ),
@@ -620,6 +630,16 @@ class _Timeline extends StatelessWidget {
                   ),
                 ),
               ]),
+            ),
+          ),
+        if (all.length > 1)
+          InkWell(
+            onTap: () => setState(() => _open = !_open),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: Hp.line(context), width: 0.8))),
+              child: Text(_open ? 'Hide steps' : 'Show all steps', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Hp.accent)),
             ),
           ),
       ]),

@@ -291,6 +291,8 @@ class OrderDetail {
     this.canReview = false,
     this.reviewRating,
     this.reviewComment,
+    this.shopImageUrl,
+    this.routePoints = const [],
     this.shopLat,
     this.shopLng,
     this.dropLat,
@@ -329,6 +331,9 @@ class OrderDetail {
   final bool canReview;
   final int? reviewRating;
   final String? reviewComment;
+  final String? shopImageUrl;
+  /// The road from the food to the door, as (lat, lng) points; empty when none is known.
+  final List<(double, double)> routePoints;
   final double? shopLat;
   final double? shopLng;
   final double? dropLat;
@@ -403,6 +408,8 @@ class OrderDetail {
       canReview: j['canReview'] == true,
       reviewRating: (j['review'] as Map?)?['rating'] == null ? null : _n((j['review'] as Map)['rating']).toInt(),
       reviewComment: _s((j['review'] as Map?)?['comment']),
+      shopImageUrl: _s((j['shop'] as Map?)?['imageUrl']),
+      routePoints: [for (final p in (j['routePath'] as List?) ?? const []) (_n((p as Map)['lat']).toDouble(), _n(p['lng']).toDouble())],
       shopLat: (j['shopLocation'] as Map?)?['lat'] == null ? null : _n((j['shopLocation'] as Map)['lat']).toDouble(),
       shopLng: (j['shopLocation'] as Map?)?['lng'] == null ? null : _n((j['shopLocation'] as Map)['lng']).toDouble(),
       dropLat: (j['dropLocation'] as Map?)?['lat'] == null ? null : _n((j['dropLocation'] as Map)['lat']).toDouble(),
