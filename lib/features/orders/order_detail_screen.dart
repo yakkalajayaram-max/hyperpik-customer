@@ -10,7 +10,6 @@ import '../../core/api.dart';
 import '../../core/cart.dart';
 import '../../core/cart_dock.dart';
 import '../../core/media.dart';
-import '../../core/nav.dart';
 import '../../core/orders_models.dart';
 import '../../core/site_chrome.dart';
 import '../../core/theme.dart';
@@ -121,7 +120,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // ---- small helpers ----------------------------------------------------------------------------------------------
 
-  Widget _h2(String text) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(text, style: const TextStyle(fontSize: 14, height: 1.43, fontWeight: FontWeight.w600)));
 
   /// "Cash on delivery · paid", "Paid online · ₹x refunded": the customer's side of the payment state.
   String _paymentLabel(OrderDetail o) {
@@ -166,44 +164,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       onRefresh: _load,
       bottom: 40,
       children: [
-        if (widget.justPlaced && !badPay && !o.isCancelled) _confirmedCard(o),
         _orderCard(o, muted, faint, badPay),
         if (o.isCancelled) _cancelledCard(o),
         if (o.refund != null) _RefundCard(info: o.refund!, orderId: o.id),
-        _h2('Track your order'),
-        Padding(padding: const EdgeInsets.only(bottom: 32), child: _tracking(o)),
-        _h2('Items'),
-        _itemsCard(o),
-        _billCard(o, badPay),
+        Padding(padding: const EdgeInsets.only(bottom: 20), child: _tracking(o)),
+        // Items and the bill are one tap away, not on the screen the whole time.
+        _Collapsible(title: 'Order details · ₹${o.total.toStringAsFixed(0)}', child: Column(children: [_itemsCard(o), _billCard(o, badPay)])),
+        const SizedBox(height: 16),
         if (o.canReview) _rateCard(o),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 32),
-          child: Wrap(spacing: 12, runSpacing: 12, children: [
-            OutlinedButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => IssueScreen(orderId: o.id, orderNumber: o.number))), child: const Text('Report an issue with this order')),
-            // Not for a table order: it was priced and served at the table, so "again" would be a different, delivered order.
-            if ((o.status == 'delivered' || o.isCancelled) && !o.isDineIn) OutlinedButton(onPressed: _reordering ? null : _reorder, child: Text(_reordering ? 'Adding…' : 'Order again')),
-          ]),
-        ),
         Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () {
-                Navigator.of(context).popUntil((r) => r.isFirst);
-                shellTab.value = tabOrders;
-              },
-              child: const Text('All orders'),
-            ),
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => IssueScreen(orderId: o.id, orderNumber: o.number))),
+            icon: const Icon(Icons.flag_outlined, size: 18),
+            label: const Text('Report an issue'),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              onPressed: () {
-                Navigator.of(context).popUntil((r) => r.isFirst);
-                shellTab.value = tabHome;
-              },
-              child: const Text('Continue shopping'),
-            ),
-          ),
+          // Not for a table order: it was priced and served at the table, so "again" would be a different, delivered order.
+          if ((o.status == 'delivered' || o.isCancelled) && !o.isDineIn)
+            TextButton.icon(onPressed: _reordering ? null : _reorder, icon: const Icon(Icons.replay_rounded, size: 18), label: Text(_reordering ? 'Adding…' : 'Order again')),
         ]),
       ],
     );
@@ -236,14 +213,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text('Order ${o.number}', style: const TextStyle(fontSize: 14, height: 1.43, fontWeight: FontWeight.w600))),
-          Text(DateFormat('d/M/yyyy, h:mm:ss a').format(o.createdAt).toLowerCase(), style: TextStyle(fontSize: 13, height: 1.33, color: faint)),
+          Text(DateFormat('h:mm a').format(o.createdAt).toLowerCase(), style: TextStyle(fontSize: 13, height: 1.33, color: faint)),
         ]),
-        if (o.isDineIn || o.isPickup || o.addressFull == null) ...[
-        const SizedBox(height: 8),
-        Text(o.isDineIn ? 'Dining in at ${o.shopName}${o.tableLabel == null ? '' : ' · ${o.tableLabel!.replaceFirstMapped(RegExp(r'^(table)(\d)', caseSensitive: false), (m) => '${m[1]} ${m[2]}')}'}' : o.isPickup || o.addressFull == null ? 'Collect from the shop' : '', style: TextStyle(fontSize: 14, height: 1.43, color: muted)),
-        ],
         const SizedBox(height: 4),
-        Text(_paymentLabel(o), style: TextStyle(fontSize: 13, height: 1.33, fontWeight: badPay ? FontWeight.w500 : FontWeight.w500, color: badPay ? Hp.bad : faint)),
+        Text(o.isDineIn ? 'Dining in at ${o.shopName}' : o.shopName, style: TextStyle(fontSize: 14, height: 1.43, color: muted)),
+        if (badPay) ...[
+          const SizedBox(height: 4),
+          Text(_paymentLabel(o), style: const TextStyle(fontSize: 13, height: 1.33, fontWeight: FontWeight.w500, color: Hp.bad)),
+        ],
         if (showCancel) ...[
           const SizedBox(height: 12),
           if (!_confirmingCancel)
@@ -376,28 +353,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       else
         _Timeline(steps: steps),
       if (o.status != 'cancelled' && o.status != 'delivered') ...[
-        if (o.status != 'placed' && o.deliveryOtp != null) ...[const SizedBox(height: 32), _PinCard(pin: o.deliveryOtp!)],
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
         if (!hasRider)
-          _Panel(icon: Icons.sync_rounded, title: 'Finding you a rider', child: Text('We book a delivery partner shortly before your food is ready, so they arrive as it does.', style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))))
+          Row(children: [
+            const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            const SizedBox(width: 10),
+            Text('Finding you a rider', style: TextStyle(fontSize: 14, color: Hp.muted(context))),
+          ])
         else ...[
-          _Panel(
-            icon: Icons.two_wheeler_rounded,
-            title: o.riderName != null ? '${o.riderName} is your rider' : 'A rider is assigned',
-            child: o.riderPhone == null
-                ? const SizedBox.shrink()
-                : InkWell(
-                    onTap: () => launchUrl(Uri.parse('tel:${o.riderPhone}')),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.phone_outlined, size: 14, color: Hp.accent),
-                        const SizedBox(width: 6),
-                        Text(o.riderPhone!, style: const TextStyle(fontSize: 14, height: 1.43, fontWeight: FontWeight.w500, color: Hp.accent)),
-                      ]),
-                    ),
-                  ),
-          ),
+          Row(children: [
+            Container(width: 40, height: 40, decoration: BoxDecoration(color: Hp.tint(context), shape: BoxShape.circle), child: const Icon(Icons.two_wheeler_rounded, size: 22, color: Hp.accent)),
+            const SizedBox(width: 12),
+            Expanded(child: Text(o.riderName ?? 'Your rider', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+            if (o.deliveryOtp != null && o.status != 'placed')
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: Hp.tint(context), borderRadius: BorderRadius.circular(10)),
+                child: Text('Code ${o.deliveryOtp}', style: const TextStyle(fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.w700, color: Hp.accent)),
+              ),
+            if (o.riderPhone != null) IconButton.filledTonal(onPressed: () => launchUrl(Uri.parse('tel:${o.riderPhone}')), icon: const Icon(Icons.call_rounded, size: 18)),
+          ]),
           if (o.dropLat != null || o.shopLat != null) ...[
             const SizedBox(height: 12),
             LiveMap(shop: _pt(o.shopLat, o.shopLng), drop: _pt(o.dropLat, o.dropLng), rider: _pt(o.riderLat, o.riderLng), shopName: o.shopName, shopImageUrl: o.shopImageUrl, route: o.routePoints),
@@ -553,22 +529,16 @@ class _EtaBanner extends StatelessWidget {
     final to = order.estimateTo!;
     final mid = from.add(to.difference(from) ~/ 2);
     final left = mid.difference(DateTime.now()).inMinutes;
-    final basis = switch (order.estimateBasis) {
-      'waiting_for_shop' => 'Starts once the shop accepts your order.',
-      'on_the_way' => 'Your rider is on the way to you.',
-      _ => 'Your food is being prepared, then a rider brings it.',
-    };
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Hp.tint(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Hp.accent.withValues(alpha: 0.3), width: 0.8)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(color: Hp.tint(context), borderRadius: BorderRadius.circular(16)),
       child: Row(children: [
-        Container(width: 48, height: 48, decoration: BoxDecoration(color: Hp.accent, borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.schedule_rounded, color: Colors.white, size: 24)),
-        const SizedBox(width: 16),
+        const Icon(Icons.access_time_rounded, color: Hp.accent, size: 26),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('ESTIMATED ARRIVAL', style: TextStyle(fontSize: 13, height: 1.33, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: Hp.faint(context))),
-            Text('${_clock(from)} – ${_clock(to)}', style: const TextStyle(fontSize: 20, height: 1.4, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-            Text('${left <= 3 ? 'Any minute now. ' : 'About $left min. '}$basis', style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))),
+            Text('${_clock(from)} – ${_clock(to)}', style: const TextStyle(fontSize: 20, height: 1.3, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+            Text(left <= 3 ? 'Any minute now' : 'About $left min', style: TextStyle(fontSize: 13, height: 1.33, color: Hp.muted(context))),
           ]),
         ),
       ]),
@@ -980,5 +950,37 @@ Future<void> reorderOrder(BuildContext context, String orderId) async {
     openCart();
   } on ApiException catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  }
+}
+
+/// A section that starts closed: the heading and a chevron, and its contents once tapped.
+class _Collapsible extends StatefulWidget {
+  const _Collapsible({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  State<_Collapsible> createState() => _CollapsibleState();
+}
+
+class _CollapsibleState extends State<_Collapsible> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      InkWell(
+        onTap: () => setState(() => _open = !_open),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(children: [
+            Expanded(child: Text(widget.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
+            Icon(_open ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
+          ]),
+        ),
+      ),
+      if (_open) widget.child,
+    ]);
   }
 }
