@@ -48,6 +48,8 @@ class _ShopScreenState extends State<ShopScreen> {
   ShopMenu? _menu;
   String? _error;
   bool _vegOnly = false;
+  final _searchCtl = TextEditingController();
+  String _query = '';
   String _activeId = '';
 
   final _scroll = ScrollController();
@@ -63,6 +65,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   void dispose() {
     _scroll.dispose();
+    _searchCtl.dispose();
     super.dispose();
   }
 
@@ -102,7 +105,14 @@ class _ShopScreenState extends State<ShopScreen> {
 
   /// Items grouped under their category heading, in the shop's own order; dishes with no category go under "More".
   List<_Section> _sections(ShopMenu m) {
-    bool keep(MenuItem i) => !_vegOnly || i.veg == true;
+    final words = _query.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    bool matches(MenuItem i) {
+      if (words.isEmpty) return true;
+      final hay = '${i.name} ${i.description ?? ''} ${i.portion ?? ''} ${i.product?.brand ?? ''}'.toLowerCase();
+      return words.every(hay.contains);
+    }
+
+    bool keep(MenuItem i) => (!_vegOnly || i.veg == true) && matches(i);
     final out = <_Section>[];
     final known = <String>{};
     for (final c in m.categories) {
@@ -274,9 +284,10 @@ class _ShopScreenState extends State<ShopScreen> {
                     const SizedBox(height: 16),
                     if (shop != null) ...[
                       _ShopInfo(shop: shop),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 14),
+                      if (menu != null && menu.items.isNotEmpty) ...[_ProductSearch(controller: _searchCtl, onChanged: (v) => setState(() => _query = v)), const SizedBox(height: 14)],
                       _SoldBy(name: shop.name),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       if (!shop.canOrder)
                         Container(
                           margin: const EdgeInsets.only(bottom: 24),
@@ -289,11 +300,9 @@ class _ShopScreenState extends State<ShopScreen> {
                   ]),
                 ),
               ),
-              // What the shop is offering: a small carousel, as food apps put it under the shop's name.
-              if (menu != null && menu.offers.isNotEmpty) SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(bottom: 8), child: _OffersCarousel(offers: menu.offers))),
-              if (menu != null && sections.isEmpty && !_vegOnly)
+              if (menu != null && sections.isEmpty && !_vegOnly && _query.trim().isEmpty)
                 SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), child: Text("This store hasn't added their products yet.", style: TextStyle(fontSize: 14, color: Hp.faint(context))))),
-              if (menu != null && (sections.isNotEmpty || _vegOnly)) ...[
+              if (menu != null && (sections.isNotEmpty || _vegOnly || _query.trim().isNotEmpty)) ...[
                 // The sections as chips, pinned under the header: tap to go to one; they follow you as you scroll.
                 SliverPersistentHeader(
                   pinned: true,
@@ -320,7 +329,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 ),
                 SliverToBoxAdapter(child: SizedBox(key: _listAnchor, height: 0)),
                 if (sections.isEmpty)
-                  const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(48), child: Center(child: Text('No vegetarian dishes here.'))))
+                  SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(48), child: Center(child: Text(_query.trim().isNotEmpty ? 'Nothing here matches "${_query.trim()}".' : 'No vegetarian dishes here.'))))
                 else
                   SliverVariedExtentList(
                     itemExtentBuilder: (i, _) => _extentOf(entries[i]),
@@ -334,6 +343,8 @@ class _ShopScreenState extends State<ShopScreen> {
                       childCount: entries.length,
                     ),
                   ),
+                // The extras come after the products: what the shop is offering, then who it is.
+                if (menu.offers.isNotEmpty) SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 16, bottom: 8), child: _OffersCarousel(offers: menu.offers))),
                 SliverToBoxAdapter(child: _Licences(menu: menu)),
               ],
             ],
@@ -814,5 +825,44 @@ class _OffersCarouselState extends State<_OffersCarousel> {
           ]),
         ),
     ]);
+  }
+}
+
+
+/// Search this shop's products: every word has to appear in a product's name, description, pack size or brand.
+class _ProductSearch extends StatelessWidget {
+  const _ProductSearch({required this.controller, required this.onChanged});
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search products in this shop',
+        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (_, v, __) => v.text.isEmpty
+              ? const SizedBox.shrink()
+              : IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: () {
+                    controller.clear();
+                    onChanged('');
+                  },
+                ),
+        ),
+        isDense: true,
+        filled: true,
+        fillColor: Hp.surface(context),
+        contentPadding: const EdgeInsets.symmetric(vertical: 13),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Hp.line(context), width: 0.8)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Hp.line(context), width: 0.8)),
+      ),
+    );
   }
 }
