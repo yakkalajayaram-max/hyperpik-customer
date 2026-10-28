@@ -11,7 +11,7 @@ import '../../core/place.dart';
 import '../../core/site_chrome.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import 'item_sheet.dart';
+import 'product/product_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key, required this.handle, this.preview});
@@ -79,20 +79,11 @@ class _ShopScreenState extends State<ShopScreen> {
 
   String? _blockedReason(Shop shop) => shop.canOrder ? null : (!shop.open ? (shop.closedReason ?? 'This shop is closed right now.') : 'This shop does not deliver to your location.');
 
-  /// The product page: photo, description, quantity and choices.
+  /// The product page, arranged for what this shop sells (see ProductScreen). It adds to the cart itself.
   Future<void> _open(Shop shop, MenuItem item) async {
-    final choice = await showModalBottomSheet<ItemChoice>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Hp.surface(context),
-      barrierColor: const Color(0x660B0716),
-      constraints: const BoxConstraints(maxWidth: 448),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      clipBehavior: Clip.antiAlias,
-      builder: (_) => ItemSheet(item: item, categoryKey: shop.categoryKey, canOrder: shop.canOrder, blockedReason: _blockedReason(shop)),
-    );
-    if (choice != null) Cart.instance.add(shop, item, chosen: choice.chosen, quantity: choice.quantity);
+    final menu = _menu;
+    if (menu == null) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProductScreen(item: item, menu: menu, canOrder: shop.canOrder, blockedReason: _blockedReason(shop))));
   }
 
   /// The ADD button: a plain dish goes straight in; one with choices opens its page for them.

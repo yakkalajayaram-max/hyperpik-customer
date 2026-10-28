@@ -13,6 +13,7 @@ import 'core/theme.dart';
 import 'core/theme_controller.dart';
 import 'features/intro/intro_screen.dart';
 import 'features/shell/app_shell.dart';
+import 'features/shop/shop_screen.dart';
 
 /// Development only: lay the app out as a phone-width column. See HyperpikApp.
 const kPreviewFrame = bool.fromEnvironment('PREVIEW_FRAME');
@@ -74,7 +75,8 @@ class HyperpikApp extends StatelessWidget {
           child: Center(child: ClipRect(child: SizedBox(width: 375, child: MediaQuery(data: mq.copyWith(size: Size(375, mq.size.height)), child: app)))),
         );
       },
-      home: const _Root(),
+      // Development only: with PREVIEW_FRAME, ?shop=<handle> in the address opens that shop directly.
+      home: kPreviewFrame && (Uri.base.queryParameters['shop'] ?? '').isNotEmpty ? ShopScreen(handle: Uri.base.queryParameters['shop']!) : const _Root(),
     );
   }
 }

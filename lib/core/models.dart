@@ -63,6 +63,8 @@ class Shop {
     this.createdAt,
     this.totalOrders = 0,
     this.offerLabel,
+    this.family = 'general',
+    this.layout,
   });
 
   final String id;
@@ -103,6 +105,23 @@ class Shop {
   /// The headline offer for the card ("25% OFF"), when the shop or the platform is running one.
   final String? offerLabel;
 
+  /// Which kind of product page this shop's items get: food, packaged, fresh, produce, pharmacy, apparel, electronics or general.
+  final String family;
+
+  /// How its product pages are arranged: food, apparel, electronics or grocery. Chosen by the admin per category; from an older
+  /// server it is worked out from [family].
+  final String? layout;
+
+  String get productLayout => switch (layout) {
+        'food' || 'apparel' || 'electronics' || 'grocery' => layout!,
+        _ => switch (family) {
+            'food' => 'food',
+            'apparel' => 'apparel',
+            'electronics' => 'electronics',
+            _ => 'grocery',
+          },
+      };
+
   /// A shop can be ordered from only when it is open and delivers to where the customer is.
   bool get canOrder => open && inRange;
 
@@ -136,6 +155,8 @@ class Shop {
         createdAt: DateTime.tryParse('${j['createdAt']}'),
         totalOrders: _n(j['totalOrders']).toInt(),
         offerLabel: _s(j['offerLabel']),
+        family: _s(j['family']) ?? 'general',
+        layout: _s(j['layout']),
       );
 }
 
@@ -170,6 +191,82 @@ class ChoiceGroup {
       );
 }
 
+/// One heading on a product page (ingredients, care, key specifications...): text, a list of chips, or label/value rows.
+class DetailSection {
+  DetailSection({required this.key, required this.title, this.text, this.list = const [], this.specs = const []});
+  final String key;
+  final String title;
+  final String? text;
+  final List<String> list;
+  final List<({String label, String value})> specs;
+
+  factory DetailSection.fromJson(Map<String, dynamic> j) => DetailSection(
+        key: '${j['key']}',
+        title: '${j['title']}',
+        text: _s(j['text']),
+        list: ((j['list'] as List?) ?? const []).map((e) => '$e').toList(),
+        specs: [for (final x in ((j['specs'] as List?) ?? const [])) (label: '${(x as Map)['label']}', value: '${x['value']}')],
+      );
+}
+
+/// A small tag on a product: "Vegetarian", "Organic", "Prescription required".
+class ProductBadge {
+  ProductBadge({required this.key, required this.label, required this.tone});
+  final String key;
+  final String label;
+
+  /// ok, bad, warn or plain.
+  final String tone;
+}
+
+/// Everything a product page shows beyond the menu row. Every part may be empty: the page shows only what the shop filled in.
+class ProductInfo {
+  ProductInfo({
+    this.mrp,
+    this.unit,
+    this.soldByWeight = false,
+    this.warrantyMonths,
+    this.prepMinutes,
+    this.lowStock,
+    this.earliestExpiry,
+    this.trackSerials = false,
+    this.brand,
+    this.badges = const [],
+    this.rows = const [],
+    this.gallery = const [],
+    this.sections = const [],
+  });
+  final num? mrp;
+  final String? unit;
+  final bool soldByWeight;
+  final int? warrantyMonths;
+  final int? prepMinutes;
+  final int? lowStock;
+  final String? earliestExpiry;
+  final bool trackSerials;
+  final String? brand;
+  final List<ProductBadge> badges;
+  final List<({String label, String value})> rows;
+  final List<String> gallery;
+  final List<DetailSection> sections;
+
+  factory ProductInfo.fromJson(Map<String, dynamic> j) => ProductInfo(
+        mrp: j['mrp'] == null ? null : _n(j['mrp']),
+        unit: _s(j['unit']),
+        soldByWeight: j['soldBy'] == 'weight',
+        warrantyMonths: j['warrantyMonths'] == null ? null : _n(j['warrantyMonths']).toInt(),
+        prepMinutes: j['prepMinutes'] == null ? null : _n(j['prepMinutes']).toInt(),
+        lowStock: j['lowStock'] == null ? null : _n(j['lowStock']).toInt(),
+        earliestExpiry: _s(j['earliestExpiry']),
+        trackSerials: j['trackSerials'] == true,
+        brand: _s(j['brand']),
+        badges: [for (final b in ((j['badges'] as List?) ?? const [])) ProductBadge(key: '${(b as Map)['key']}', label: '${b['label']}', tone: '${b['tone']}')],
+        rows: [for (final x in ((j['rows'] as List?) ?? const [])) (label: '${(x as Map)['label']}', value: '${x['value']}')],
+        gallery: ((j['gallery'] as List?) ?? const []).map((e) => '$e').toList(),
+        sections: ((j['sections'] as List?) ?? const []).map((s) => DetailSection.fromJson(Map<String, dynamic>.from(s as Map))).toList(),
+      );
+}
+
 class MenuItem {
   MenuItem({
     required this.id,
@@ -183,10 +280,18 @@ class MenuItem {
     this.unavailableLabel,
     this.groups = const [],
     this.bestseller = false,
+    this.product,
+    this.portion,
   });
 
   final String id;
   final String name;
+
+  /// The pack size or portion the shop wrote ("500 g", "Serves 2").
+  final String? portion;
+
+  /// Photos, specifications and the rest of the product page; null from an older server.
+  final ProductInfo? product;
 
   /// The online base price. Zero for a dish priced through a required choice: use [fromPrice] to show a price.
   final num price;
@@ -226,6 +331,8 @@ class MenuItem {
         available: j['available'] != false,
         unavailableLabel: _s(j['unavailableLabel']),
         bestseller: j['bestseller'] == true,
+        portion: _s(j['portion']),
+        product: j['product'] is Map ? ProductInfo.fromJson(Map<String, dynamic>.from(j['product'] as Map)) : null,
         groups: ((j['choiceGroups'] as List?) ?? const []).map((g) => ChoiceGroup.fromJson(Map<String, dynamic>.from(g as Map))).toList(),
       );
 }
