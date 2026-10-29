@@ -183,6 +183,7 @@ class TagChip extends StatelessWidget {
       'ok' => Hp.veg,
       'bad' => Hp.nonVeg,
       'warn' => const Color(0xFFB45309),
+      'special' => const Color(0xFF6D28D9),
       _ => Hp.muted(context),
     };
     return Container(
