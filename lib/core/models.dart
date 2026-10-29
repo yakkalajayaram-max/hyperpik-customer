@@ -280,6 +280,7 @@ class MenuItem {
     this.unavailableLabel,
     this.groups = const [],
     this.bestseller = false,
+    this.tags = const [],
     this.product,
     this.portion,
   });
@@ -306,6 +307,9 @@ class MenuItem {
   /// Among the dishes people order most from this shop.
   final bool bestseller;
 
+  /// The shop's own highlight tags ("Chef's special"), at most three.
+  final List<String> tags;
+
   bool get hasChoices => groups.isNotEmpty;
   bool get needsChoice => groups.any((g) => g.required);
 
@@ -331,6 +335,7 @@ class MenuItem {
         available: j['available'] != false,
         unavailableLabel: _s(j['unavailableLabel']),
         bestseller: j['bestseller'] == true,
+        tags: [for (final t in ((j['tags'] as List?) ?? const [])) '$t'],
         portion: _s(j['portion']),
         product: j['product'] is Map ? ProductInfo.fromJson(Map<String, dynamic>.from(j['product'] as Map)) : null,
         groups: ((j['choiceGroups'] as List?) ?? const []).map((g) => ChoiceGroup.fromJson(Map<String, dynamic>.from(g as Map))).toList(),

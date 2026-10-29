@@ -34,6 +34,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
 
   String? _shopId;
   Shop? _shop;
+  List<MenuItem> _menu = const [];
   List<Address>? _addresses;
   String? _addressId;
 
@@ -90,7 +91,12 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
     if (cart == null) return;
     try {
       final m = await Api.shop(cart.shopHandle);
-      if (mounted && _shopId == cart.shopId) setState(() => _shop = m.shop);
+      if (mounted && _shopId == cart.shopId) {
+        setState(() {
+          _shop = m.shop;
+          _menu = m.items;
+        });
+      }
     } catch (_) {
       // The page still works without the shop's open/closed state; checkout says so if it is closed.
     }
@@ -432,6 +438,72 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
       btn(Icons.remove_rounded, () => Cart.instance.setQuantity(_shopId!, line, line.quantity - 1)),
       SizedBox(width: 24, child: Text('${line.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, height: 1.43, fontWeight: FontWeight.w600))),
       btn(Icons.add_rounded, () => Cart.instance.setQuantity(_shopId!, line, line.quantity + 1)),
+    ]);
+  }
+
+  /// A few extras from the same shop, one tap each: things people order here, from a category the cart does not have yet,
+  /// that need no choice. The same rule as the website's cart.
+  Widget _suggestions(ShopCart cart) {
+    final shop = _shop;
+    if (shop == null || _menu.isEmpty) return const SizedBox.shrink();
+    final inCart = {for (final l in cart.lines) l.itemId};
+    final haveCats = {for (final i in _menu.where((i) => inCart.contains(i.id))) i.categoryId};
+    final avg = cart.lines.isEmpty ? 0 : cart.lines.fold<num>(0, (a, l) => a + l.unitPrice) / cart.lines.length;
+    final picks = _menu.where((i) => !inCart.contains(i.id) && i.available && i.price > 0 && !i.needsChoice).toList()
+      ..sort((a, b) {
+        num score(MenuItem i) => (i.bestseller ? 10 : 0) + (haveCats.contains(i.categoryId) ? 0 : 6) + (avg > 0 && i.price <= avg ? 3 : 0);
+        final d = score(b).compareTo(score(a));
+        return d != 0 ? d : a.price.compareTo(b.price);
+      });
+    final shown = picks.take(4).toList();
+    if (shown.isEmpty) return const SizedBox.shrink();
+    final catKey = shop.categoryKey;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Add to your order', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 10),
+      SizedBox(
+        height: 186,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: shown.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (_, k) {
+            final it = shown[k];
+            return Container(
+              width: 150,
+              clipBehavior: Clip.antiAlias,
+              decoration: cardDecoration(context),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(
+                  height: 84,
+                  width: double.infinity,
+                  child: ColoredBox(color: Hp.surface2(context), child: Image.network(Media.item(catKey, it.id, it.imageUrl), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(it.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Row(children: [
+                      Text('₹${it.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      InkWell(
+                        onTap: () => Cart.instance.add(shop, it),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(border: Border.all(color: Hp.accent), borderRadius: BorderRadius.circular(8)),
+                          child: Text('ADD', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Hp.accent)),
+                        ),
+                      ),
+                    ]),
+                  ]),
+                ),
+              ]),
+            );
+          },
+        ),
+      ),
     ]);
   }
 
@@ -1043,7 +1115,9 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
           ])),
         ),
         if (closed && closedText != null) _notice('$closedText. Your items are still here, so come back once the store reopens.', Hp.bad),
-        Padding(padding: const EdgeInsets.only(bottom: 32), child: _lineCard(cart)),
+        Padding(padding: const EdgeInsets.only(bottom: 16), child: _lineCard(cart)),
+        _suggestions(cart),
+        const SizedBox(height: 16),
         if (!signedIn)
           Container(
             width: double.infinity,
