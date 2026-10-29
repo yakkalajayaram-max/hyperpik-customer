@@ -65,7 +65,21 @@ class Shop {
     this.offerLabel,
     this.family = 'general',
     this.layout,
+    this.loyaltyEnabled = false,
+    this.loyaltyEarnPercent = 0,
+    this.loyaltyMaxRedeemPercent = 50,
+    this.reservationsEnabled = false,
+    this.reservationMaxParty = 10,
+    this.reservationNoticeHours = 2,
   });
+
+  /// The shop's loyalty program (points earned on a delivered order, spent at its checkout) and its table bookings.
+  final bool loyaltyEnabled;
+  final num loyaltyEarnPercent;
+  final int loyaltyMaxRedeemPercent;
+  final bool reservationsEnabled;
+  final int reservationMaxParty;
+  final int reservationNoticeHours;
 
   final String id;
   final String handle;
@@ -157,6 +171,34 @@ class Shop {
         offerLabel: _s(j['offerLabel']),
         family: _s(j['family']) ?? 'general',
         layout: _s(j['layout']),
+        loyaltyEnabled: (j['loyalty'] as Map?)?['enabled'] == true,
+        loyaltyEarnPercent: _n((j['loyalty'] as Map?)?['earnPercent']),
+        loyaltyMaxRedeemPercent: _n((j['loyalty'] as Map?)?['maxRedeemPercent']).toInt() == 0 ? 50 : _n((j['loyalty'] as Map?)?['maxRedeemPercent']).toInt(),
+        reservationsEnabled: (j['reservations'] as Map?)?['enabled'] == true,
+        reservationMaxParty: _n((j['reservations'] as Map?)?['maxParty']).toInt() == 0 ? 10 : _n((j['reservations'] as Map?)?['maxParty']).toInt(),
+        reservationNoticeHours: _n((j['reservations'] as Map?)?['noticeHours']).toInt(),
+      );
+}
+
+/// One table booking, as the customer sees it.
+class Reservation {
+  Reservation({required this.id, required this.shopId, required this.shopName, required this.partySize, required this.at, required this.status, this.shopNote = ''});
+  final String id;
+  final String shopId;
+  final String shopName;
+  final int partySize;
+  final DateTime at;
+  final String status;
+  final String shopNote;
+
+  factory Reservation.fromJson(Map<String, dynamic> j) => Reservation(
+        id: '${j['id']}',
+        shopId: '${j['shopId']}',
+        shopName: '${j['shopName'] ?? ''}',
+        partySize: _n(j['partySize']).toInt(),
+        at: DateTime.tryParse('${j['at']}') ?? DateTime.now(),
+        status: '${j['status']}',
+        shopNote: '${j['shopNote'] ?? ''}',
       );
 }
 

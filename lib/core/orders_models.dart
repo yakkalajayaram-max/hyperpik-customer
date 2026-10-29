@@ -81,7 +81,17 @@ class Quote {
     this.etaNote,
     this.paymentMethods = const ['razorpay'],
     this.slots = const [],
+    this.loyaltyEnabled = false,
+    this.loyaltyBalance = 0,
+    this.loyaltyUsable = 0,
+    this.loyaltyUsed = 0,
   });
+
+  /// The shop's loyalty program for this customer: whether it has one, their points, what they can spend on this order and what this quote spends.
+  final bool loyaltyEnabled;
+  final int loyaltyBalance;
+  final int loyaltyUsable;
+  final int loyaltyUsed;
 
   /// Today's times the customer can schedule this order for ("schedule for later"), earliest first. Empty when the
   /// shop has none left today, which hides the choice.
@@ -134,6 +144,10 @@ class Quote {
         deliveryVendorPays: _n(j['deliveryVendorPays']),
         etaNote: _s(j['etaNote']),
         paymentMethods: [for (final m in (j['paymentMethods'] as List?) ?? const ['razorpay']) m.toString()],
+        loyaltyEnabled: (j['loyalty'] as Map?)?['enabled'] == true,
+        loyaltyBalance: _n((j['loyalty'] as Map?)?['balance']).toInt(),
+        loyaltyUsable: _n((j['loyalty'] as Map?)?['usable']).toInt(),
+        loyaltyUsed: _n((j['loyalty'] as Map?)?['used']).toInt(),
         slots: [
           for (final s in ((j['schedule'] as Map?)?['slots'] as List?) ?? const [])
             if (DateTime.tryParse('$s') != null) DateTime.parse('$s'),

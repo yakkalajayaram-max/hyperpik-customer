@@ -49,6 +49,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
   Quote? _quote;
   List<OfferInfo> _offers = const [];
   bool _offersExpanded = false;
+  bool _useLoyalty = false;
   String? _applied; // the coupon reference in play: a code the customer typed or an offer's id
   String? _appliedTitle;
   String? _couponError;
@@ -178,7 +179,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
       await Api.syncCart(cart.shopId, _lines);
       Quote q;
       try {
-        q = await Api.quote(shopId: cart.shopId, addressId: _pickup ? null : _addressId, pickup: _pickup, method: _method, coupon: _applied);
+        q = await Api.quote(shopId: cart.shopId, addressId: _pickup ? null : _addressId, pickup: _pickup, method: _method, coupon: _applied, useLoyalty: _useLoyalty);
       } on ApiException catch (e) {
         // An offer that does not apply must not hide the bill: say why and price it without.
         if (_applied == null) rethrow;
@@ -190,7 +191,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
           });
           Cart.instance.setCoupon(cart.shopId, null);
         }
-        q = await Api.quote(shopId: cart.shopId, addressId: _pickup ? null : _addressId, pickup: _pickup, method: _method);
+        q = await Api.quote(shopId: cart.shopId, addressId: _pickup ? null : _addressId, pickup: _pickup, method: _method, useLoyalty: _useLoyalty);
       }
       if (mounted) {
         setState(() {
@@ -312,6 +313,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
       // Priced again from the live menu on the server: what was quoted is what is charged.
       await Api.syncCart(cart.shopId, _lines);
       final order = await Api.placeOrder(
+        useLoyalty: _useLoyalty && (_quote?.loyaltyUsable ?? 0) > 0,
         shopId: cart.shopId,
         addressId: _pickup ? null : _addressId,
         pickup: _pickup,
@@ -980,7 +982,25 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
                   : plain('₹${q.handling.toStringAsFixed(2)}'),
             ),
           if (q.paymentFee > 0) row(plain('Payment fee', color: muted), plain('₹${q.paymentFee.toStringAsFixed(2)}')),
-          if (q.discount > 0) row(plain(_appliedTitle ?? 'Offer applied', color: Hp.ok), plain('−₹${q.discount.toStringAsFixed(0)}', color: Hp.ok)),
+          if (q.discount - q.loyaltyUsed > 0) row(plain(_appliedTitle ?? 'Offer applied', color: Hp.ok), plain('−₹${(q.discount - q.loyaltyUsed).toStringAsFixed(0)}', color: Hp.ok)),
+          if (q.loyaltyUsed > 0) row(plain('Loyalty points', color: Hp.ok), plain('−₹${q.loyaltyUsed}', color: Hp.ok)),
+          if (q.loyaltyEnabled && (q.loyaltyBalance > 0 || q.loyaltyUsed > 0))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: _useLoyalty && (q.loyaltyUsable > 0 || q.loyaltyUsed > 0),
+                onChanged: q.loyaltyUsable > 0 || q.loyaltyUsed > 0
+                    ? (v) {
+                        setState(() => _useLoyalty = v ?? false);
+                        _price();
+                      }
+                    : null,
+                title: const Text('Use my points', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: Text('You have ${q.loyaltyBalance + q.loyaltyUsed} points. ${(q.loyaltyUsable > 0 || q.loyaltyUsed > 0) ? 'Use ${q.loyaltyUsable > 0 ? q.loyaltyUsable : q.loyaltyUsed} for ₹${q.loyaltyUsable > 0 ? q.loyaltyUsable : q.loyaltyUsed} off this order.' : 'Add more to your order to use them.'}', style: const TextStyle(fontSize: 12)),
+              ),
+            ),
         ],
         Container(
           margin: const EdgeInsets.only(top: 4),

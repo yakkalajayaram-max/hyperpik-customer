@@ -15,6 +15,7 @@ import '../../core/theme.dart';
 import '../../core/theme_controller.dart';
 import 'become_seller_screen.dart';
 import 'favourites_screen.dart';
+import '../reservations/reservations_screens.dart';
 import 'notifications_screen.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -203,6 +204,7 @@ class _AccountScreenState extends State<AccountScreen> {
         linkCard([
           linkRow(Icons.receipt_long_outlined, 'My orders', () => shellTab.value = tabOrders),
           linkRow(Icons.favorite_border_rounded, 'Favourites', () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FavouritesScreen()))),
+          linkRow(Icons.event_seat_outlined, 'Table bookings', () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MyReservationsScreen()))),
           linkRow(Icons.location_on_outlined, 'Saved addresses', () => shellTab.value = tabAddresses),
           linkRow(
             Icons.notifications_none_rounded,

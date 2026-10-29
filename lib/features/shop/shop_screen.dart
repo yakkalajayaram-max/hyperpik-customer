@@ -1,3 +1,4 @@
+import '../reservations/reservations_screens.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -286,6 +287,19 @@ class _ShopScreenState extends State<ShopScreen> {
                       _ShopInfo(shop: shop),
                       const SizedBox(height: 14),
                       if (menu != null && menu.items.isNotEmpty) ...[_ProductSearch(controller: _searchCtl, onChanged: (v) => setState(() => _query = v)), const SizedBox(height: 14)],
+                      if (shop.reservationsEnabled) ...[
+                        _BookTable(shop: shop),
+                        const SizedBox(height: 12),
+                      ],
+                      if (shop.loyaltyEnabled && shop.loyaltyEarnPercent > 0) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(color: Hp.accent.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+                          child: Text('Earn ${shop.loyaltyEarnPercent.toStringAsFixed(shop.loyaltyEarnPercent % 1 == 0 ? 0 : 1)}% back as points on every order, and spend them here.', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       _SoldBy(name: shop.name),
                       const SizedBox(height: 16),
                       if (!shop.canOrder)
@@ -862,6 +876,31 @@ class _ProductSearch extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(vertical: 13),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Hp.line(context), width: 0.8)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Hp.line(context), width: 0.8)),
+      ),
+    );
+  }
+}
+
+/// "Book a table": shown only when the shop has switched bookings on.
+class _BookTable extends StatelessWidget {
+  const _BookTable({required this.shop});
+  final Shop shop;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ReserveScreen(shop: shop))),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: cardDecoration(context),
+        child: const Row(children: [
+          Icon(Icons.event_seat_outlined, size: 20),
+          SizedBox(width: 12),
+          Expanded(child: Text('Book a table', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
+          Icon(Icons.chevron_right_rounded),
+        ]),
       ),
     );
   }

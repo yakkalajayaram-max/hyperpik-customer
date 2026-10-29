@@ -140,6 +140,15 @@ class Api {
         'isDefault': isDefault,
       }));
 
+  static Future<void> reserveTable({required String shopId, required String date, required String time, required int partySize, required String name, required String phone, String note = ''}) =>
+      _post('/api/customer/reservations', {'vendorId': shopId, 'date': date, 'time': time, 'partySize': partySize, 'name': name, 'phone': phone, 'note': note});
+
+  static Future<List<Reservation>> myReservations() async => [
+        for (final r in ((await _get('/api/customer/reservations'))['reservations'] as List?) ?? const []) Reservation.fromJson(Map<String, dynamic>.from(r as Map)),
+      ];
+
+  static Future<void> cancelReservation(String id) => _delete('/api/customer/reservations/$id');
+
   static Future<void> deleteAddress(String id) => _delete('/api/customer/addresses/$id');
 
   // ---- checkout ----------------------------------------------------------------------------------------------
@@ -148,16 +157,17 @@ class Api {
   static Future<void> syncCart(String shopId, List<Map<String, dynamic>> lines) =>
       _post('/api/customer/cart/sync', {'vendorId': shopId, 'lines': lines});
 
-  static Future<Quote> quote({required String shopId, String? addressId, bool pickup = false, required String method, String? coupon}) async =>
+  static Future<Quote> quote({required String shopId, String? addressId, bool pickup = false, required String method, String? coupon, bool useLoyalty = false}) async =>
       Quote.fromJson(await _post('/api/customer/checkout/quote', {
         'vendorId': shopId,
         if (addressId != null) 'addressId': addressId,
         'fulfilment': pickup ? 'pickup' : 'delivery',
         'paymentMethod': method,
         'couponCode': coupon,
+        'useLoyalty': useLoyalty,
       }));
 
-  static Future<PlacedOrder> placeOrder({required String shopId, String? addressId, bool pickup = false, required String method, String? coupon, String? note, String? contactPhone, DateTime? scheduledFor}) async =>
+  static Future<PlacedOrder> placeOrder({required String shopId, String? addressId, bool pickup = false, required String method, String? coupon, String? note, String? contactPhone, DateTime? scheduledFor, bool useLoyalty = false}) async =>
       PlacedOrder.fromJson(await _post('/api/customer/checkout', {
         // "Schedule for later": a time the quote offered, sent as an instant. Left out for as soon as possible.
         if (scheduledFor != null) 'scheduledFor': scheduledFor.toUtc().toIso8601String(),
@@ -166,6 +176,7 @@ class Api {
         'fulfilment': pickup ? 'pickup' : 'delivery',
         'paymentMethod': method,
         'couponCode': coupon,
+        'useLoyalty': useLoyalty,
         'orderNote': note,
         if (contactPhone != null) 'contactPhone': contactPhone,
       }));
