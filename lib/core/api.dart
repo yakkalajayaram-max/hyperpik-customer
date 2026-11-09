@@ -206,6 +206,15 @@ class Api {
 
   static Future<void> replyToTicket(String id, String text) => _post('/api/customer/support/tickets/$id', {'text': text});
 
+  /// While a ticket is with the automated replies or the assistant: add to it.
+  static Future<void> addToTicket(String id, String text) => _post('/api/customer/support/tickets/$id', {'action': 'add', 'text': text});
+
+  /// "That sorts it": closes a ticket that has not reached a person.
+  static Future<void> ticketSatisfied(String id) => _post('/api/customer/support/tickets/$id', {'action': 'satisfied'});
+
+  /// "Assign an agent". Returns {kind: connected|reply|wait, ...}; the third press connects a person.
+  static Future<Map<String, dynamic>> assignAgent(String id) async => await _post('/api/customer/support/tickets/$id', {'action': 'assign_agent'});
+
   // ---- profile -----------------------------------------------------------------------------------------------
 
   static Future<Map<String, dynamic>> profile() => _get('/api/customer/profile');

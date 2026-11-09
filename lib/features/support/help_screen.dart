@@ -228,6 +228,41 @@ class _TicketScreenState extends State<TicketScreen> {
     super.dispose();
   }
 
+  String? _note;
+
+  Future<void> _run(Future<void> Function() job) async {
+    setState(() {
+      _sending = true;
+      _note = null;
+    });
+    try {
+      await job();
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _add() async {
+    final text = _text.text.trim();
+    if (text.isEmpty) return;
+    await _run(() async {
+      await Api.addToTicket(widget.ticketId, text);
+      _text.clear();
+    });
+  }
+
+  Future<void> _assign() => _run(() async {
+        final r = await Api.assignAgent(widget.ticketId);
+        if (r['kind'] == 'wait') {
+          _note = 'Give it a few seconds before pressing again.';
+        } else if (r['kind'] == 'connected') {
+          _note = 'Connecting you to a person now. They will reply here.';
+        }
+      });
+
   Future<void> _load() async {
     try {
       final t = await Api.supportTicket(widget.ticketId);
@@ -282,6 +317,19 @@ class _TicketScreenState extends State<TicketScreen> {
               const SizedBox(width: 8),
               FilledButton(onPressed: _sending ? null : _send, child: Text(_sending ? '…' : 'Send')),
             ])
+          else if (t.status == 'with_ai') ...[
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Expanded(child: TextField(controller: _text, minLines: 1, maxLines: 4, maxLength: 1000, style: const TextStyle(fontSize: 14), decoration: InputDecoration(counterText: '', hintText: 'Add to your ticket', hintStyle: TextStyle(fontSize: 14, color: Hp.faint(context)), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)))),
+              const SizedBox(width: 8),
+              FilledButton(onPressed: _sending ? null : _add, child: Text(_sending ? '…' : 'Add')),
+            ]),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton(onPressed: _sending ? null : () => _run(() => Api.ticketSatisfied(widget.ticketId)), child: const Text('That sorts it')),
+              OutlinedButton(onPressed: _sending ? null : _assign, child: const Text('Assign an agent')),
+            ]),
+            if (_note != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_note!, style: TextStyle(fontSize: 13, height: 1.4, color: Hp.faint(context)))),
+          ]
           else if (t.status != 'resolved')
             Text("You'll be able to write here once Hyperpik's team has your ticket. We'll tell you.", style: TextStyle(fontSize: 13, height: 1.4, color: Hp.faint(context))),
         ],
