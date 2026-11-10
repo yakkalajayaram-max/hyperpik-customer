@@ -21,5 +21,6 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      # Golden images are rendered on Windows; fonts differ on the Linux runner, so goldens are skipped here.
       - name: Run tests (skipped when the app has no test folder)
-        run: if [ -d test ]; then flutter test; else echo "no tests"; fi
+        run: if [ -d test ]; then flutter test --name '^(?!.*golden)'; else echo "no tests"; fi

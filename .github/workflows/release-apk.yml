@@ -51,7 +51,7 @@ jobs:
 
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - run: if [ -d test ]; then flutter test; else echo "no tests"; fi
+      - run: if [ -d test ]; then flutter test --name '^(?!.*golden)'; else echo "no tests"; fi
       - run: flutter build apk --release --target-platform android-arm64
 
       - uses: actions/upload-artifact@v4.6.2
