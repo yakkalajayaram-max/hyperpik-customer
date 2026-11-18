@@ -1,7 +1,7 @@
 import 'config.dart';
 
-/// The same stock photos the website uses, so a category, a shop without a cover or a dish without a photo looks the
-/// same in the app as on hyperpik.com. They live on the site (public/images) and are fetched, not bundled. A shop's own
+/// The same stock photos the website uses, so a category or a shop without a cover looks the same in the app as on
+/// hyperpik.com. Items never use them: an item without a photo shows its name (see item_photo.dart). They live on the site (public/images) and are fetched, not bundled. A shop's own
 /// uploads always win; these are for the shop that has not added photos yet.
 class Media {
   Media._();
@@ -52,6 +52,4 @@ class Media {
   static String cover(String key, String seed, [String? uploaded]) =>
       (uploaded != null && uploaded.isNotEmpty) ? uploaded : _url(_kind(key), 'cover-${_pick(seed, 2) + 1}.jpg');
 
-  static String item(String key, String seed, [String? uploaded]) =>
-      (uploaded != null && uploaded.isNotEmpty) ? uploaded : _url(_kind(key), 'item-${_pick(seed, 2) + 1}.jpg');
 }

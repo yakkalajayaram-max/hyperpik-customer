@@ -6,7 +6,7 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/api.dart';
 import '../../core/cart.dart';
 import '../../core/cart_dock.dart';
-import '../../core/media.dart';
+import '../../core/item_photo.dart';
 import '../../core/models.dart';
 import '../../core/nav.dart';
 import '../../core/orders_models.dart';
@@ -459,7 +459,6 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
       });
     final shown = picks.take(4).toList();
     if (shown.isEmpty) return const SizedBox.shrink();
-    final catKey = shop.categoryKey;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Add to your order', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
       const SizedBox(height: 10),
@@ -479,7 +478,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
                 SizedBox(
                   height: 84,
                   width: double.infinity,
-                  child: ColoredBox(color: Hp.surface2(context), child: Image.network(Media.item(catKey, it.id, it.imageUrl), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+                  child: ItemPhoto(url: it.imageUrl, name: it.name),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
@@ -510,7 +509,6 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
   }
 
   Widget _lineCard(ShopCart cart) {
-    final catKey = _shop?.categoryKey ?? '';
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: cardDecoration(context),
@@ -525,7 +523,7 @@ class _CartScreenState extends State<CartScreen> with HidesCartDock {
                 child: SizedBox(
                   width: 64,
                   height: 64,
-                  child: ColoredBox(color: Hp.surface2(context), child: Image.network(Media.item(catKey, cart.lines[i].itemId, cart.lines[i].imageUrl), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink())),
+                  child: ItemPhoto(url: cart.lines[i].imageUrl, name: cart.lines[i].name),
                 ),
               ),
               const SizedBox(width: 16),

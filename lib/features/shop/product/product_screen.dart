@@ -164,7 +164,7 @@ class _Apparel extends StatelessWidget {
       body: Stack(children: [
         ListView(padding: EdgeInsets.zero, children: [
           PhotoPager(
-            photos: productPhotos(item, shop.categoryKey),
+            name: item.name, photos: productPhotos(item),
             aspect: 0.82,
             counter: true,
             onBadge: RatingPill(rating: shop.rating, count: shop.ratingCount, onImage: true),
@@ -303,7 +303,7 @@ class _Electronics extends StatelessWidget {
         ),
         Container(
           color: Colors.white,
-          child: PhotoPager(photos: productPhotos(item, shop.categoryKey), aspect: 1.05, contain: true, thumbs: true),
+          child: PhotoPager(name: item.name, photos: productPhotos(item), aspect: 1.05, contain: true, thumbs: true),
         ),
         Band(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -416,7 +416,7 @@ class _Food extends StatelessWidget {
           SizedBox(
             height: 290,
             child: Stack(fit: StackFit.expand, children: [
-              PhotoPager(photos: productPhotos(item, shop.categoryKey), aspect: 1.4),
+              PhotoPager(name: item.name, photos: productPhotos(item), aspect: 1.4),
               Positioned(left: 0, right: 0, bottom: 0, height: 80, child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black.withValues(alpha: 0.3), Colors.transparent])))),
             ]),
           ),
@@ -498,7 +498,7 @@ class _Grocery extends StatelessWidget {
         title: Text(shop.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
       ),
       body: ListView(padding: EdgeInsets.zero, children: [
-        Container(color: Colors.white, child: PhotoPager(photos: productPhotos(item, shop.categoryKey), aspect: 1.15, contain: true)),
+        Container(color: Colors.white, child: PhotoPager(name: item.name, photos: productPhotos(item), aspect: 1.15, contain: true)),
         Band(
           top: 0,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/api.dart';
 import '../../core/cart.dart';
 import '../../core/cart_dock.dart';
-import '../../core/media.dart';
+import '../../core/item_photo.dart';
 import '../../core/orders_models.dart';
 import '../../core/site_chrome.dart';
 import '../../core/theme.dart';
@@ -407,7 +406,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: Row(children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(width: 56, height: 56, child: ColoredBox(color: Hp.surface2(context), child: CachedNetworkImage(imageUrl: Media.item('food', o.items[i].name), fit: BoxFit.cover, errorWidget: (_, __, ___) => const SizedBox.shrink()))),
+                  child: SizedBox(width: 56, height: 56, child: NameTile(name: o.items[i].name)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

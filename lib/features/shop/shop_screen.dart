@@ -7,6 +7,7 @@ import '../../core/api.dart';
 import '../../core/cart.dart';
 import '../../core/cart_dock.dart';
 import '../../core/media.dart';
+import '../../core/item_photo.dart';
 import '../../core/models.dart';
 import '../../core/place.dart';
 import '../../core/site_chrome.dart';
@@ -605,7 +606,6 @@ class _DishRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photo = Media.item(shop.categoryKey, item.id, item.imageUrl);
     final price = item.fromPrice;
     final muted = Hp.muted(context);
     final desc = (item.description ?? '').trim();
@@ -653,7 +653,7 @@ class _DishRow extends StatelessWidget {
                   child: SizedBox(
                     width: 112,
                     height: 112,
-                    child: ColoredBox(color: Hp.surface2(context), child: CachedNetworkImage(imageUrl: photo, fit: BoxFit.cover, errorWidget: (_, __, ___) => const Center(child: Text('🍽️', style: TextStyle(fontSize: 30))))),
+                    child: ColoredBox(color: Hp.surface2(context), child: ItemPhoto(url: item.imageUrl, name: item.name)),
                   ),
                 ),
                 Positioned(bottom: 0, left: 8, right: 8, child: _AddControl(item: item, shop: shop, onAdd: onAdd)),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/api.dart';
+import '../../core/item_photo.dart';
 import '../../core/nav.dart';
 import '../../core/cart.dart';
 import '../../core/media.dart';
@@ -499,7 +500,6 @@ class _ReorderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photo = Media.item(item.categoryKey, item.id, item.imageUrl);
     return SizedBox(
       width: 132,
       child: InkWell(
@@ -519,15 +519,7 @@ class _ReorderCard extends StatelessWidget {
                 child: SizedBox(
                   height: 82,
                   width: double.infinity,
-                  child: CachedNetworkImage(
-                    imageUrl: photo,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => Container(
-                      color: Hp.tint(context),
-                      alignment: Alignment.center,
-                      child: const Text('🍽️', style: TextStyle(fontSize: 28)),
-                    ),
-                  ),
+                  child: ItemPhoto(url: item.imageUrl, name: item.name),
                 ),
               ),
               Padding(
@@ -660,7 +652,6 @@ class DishResultTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final muted = Hp.muted(context);
-    final photo = Media.item(item.categoryKey, item.id, item.imageUrl);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Container(
@@ -685,13 +676,7 @@ class DishResultTile extends StatelessWidget {
                     decoration: BoxDecoration(color: Hp.tint(context), borderRadius: BorderRadius.circular(16)),
                     clipBehavior: Clip.antiAlias,
                     alignment: Alignment.center,
-                    child: CachedNetworkImage(
-                      imageUrl: photo,
-                      width: 62,
-                      height: 62,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => const Text('🍽️', style: TextStyle(fontSize: 26)),
-                    ),
+                    child: ItemPhoto(url: item.imageUrl, name: item.name),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1370,7 +1355,6 @@ class _TrendingChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final photo = Media.item(item.categoryKey, item.id, item.imageUrl);
     return SizedBox(
       width: 248,
       height: 82,
@@ -1393,11 +1377,7 @@ class _TrendingChip extends StatelessWidget {
                   height: 64,
                   child: ColoredBox(
                     color: Hp.surface2(context),
-                    child: CachedNetworkImage(
-                      imageUrl: photo,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => const Center(child: Text('🍽️', style: TextStyle(fontSize: 24))),
-                    ),
+                    child: ItemPhoto(url: item.imageUrl, name: item.name),
                   ),
                 ),
               ),

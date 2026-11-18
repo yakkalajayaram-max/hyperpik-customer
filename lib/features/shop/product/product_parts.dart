@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/media.dart';
+import '../../../core/item_photo.dart';
 import '../../../core/models.dart';
 import '../../../core/theme.dart';
 import 'product_ctl.dart';
@@ -30,12 +30,11 @@ String? perUnitLabel(num price, String? packSize, bool byWeight, String? unit) {
   return '₹${per100 < 10 ? per100.toStringAsFixed(2) : per100.round()} per 100 ${liquid ? 'ml' : 'g'}';
 }
 
-/// The photos of an item: its main photo, then the extra ones, or the category's stock photo when it has none.
-List<String> productPhotos(MenuItem item, String categoryKey) {
+/// The photos of an item: its main photo, then the extra ones. Empty when it has none; PhotoPager then shows its name.
+List<String> productPhotos(MenuItem item) {
   final main = (item.imageUrl ?? '').trim();
   final extra = (item.product?.gallery ?? const <String>[]).where((u) => u.trim().isNotEmpty).toList();
-  final all = [if (main.isNotEmpty) main, ...extra];
-  return all.isEmpty ? [Media.item(categoryKey, item.id)] : all;
+  return [if (main.isNotEmpty) main, ...extra];
 }
 
 /// A round button over a photo (back, close).
@@ -64,7 +63,9 @@ class RoundIcon extends StatelessWidget {
 /// A swipeable set of photos. [counter] draws "2/5" (Myntra); otherwise dots. [contain] shows the whole product on a plain
 /// ground (electronics) instead of filling the frame (clothes, food).
 class PhotoPager extends StatefulWidget {
-  const PhotoPager({super.key, required this.photos, this.aspect = 1, this.contain = false, this.counter = false, this.thumbs = false, this.onBadge, this.overlay});
+  const PhotoPager({super.key, required this.name, required this.photos, this.aspect = 1, this.contain = false, this.counter = false, this.thumbs = false, this.onBadge, this.overlay});
+  /// Shown on a plain tile when the item has no photos.
+  final String name;
   final List<String> photos;
   final double aspect;
   final bool contain;
@@ -106,7 +107,7 @@ class _PhotoPagerState extends State<PhotoPager> {
         aspectRatio: widget.aspect,
         child: Stack(fit: StackFit.expand, children: [
           ColoredBox(color: ground),
-          PageView.builder(
+          if (n == 0) NameTile(name: widget.name) else PageView.builder(
             controller: _c,
             itemCount: n,
             onPageChanged: (v) => setState(() => _i = v),
@@ -632,7 +633,8 @@ class RelatedRow extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(width: 12),
           itemBuilder: (_, k) {
             final it = items[k];
-            final photo = productPhotos(it, shop.categoryKey).first;
+            final photos = productPhotos(it);
+            final photo = photos.isEmpty ? null : photos.first;
             final mrp = it.product?.mrp;
             return GestureDetector(
               onTap: () => onOpen(it),
@@ -641,7 +643,7 @@ class RelatedRow extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(width: card, height: photoH, child: CachedNetworkImage(imageUrl: photo, fit: BoxFit.cover, errorWidget: (_, __, ___) => ColoredBox(color: Hp.surface2(context)))),
+                    child: SizedBox(width: card, height: photoH, child: ItemPhoto(url: photo, name: it.name)),
                   ),
                   const SizedBox(height: 8),
                   Text(it.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, height: 1.25)),
