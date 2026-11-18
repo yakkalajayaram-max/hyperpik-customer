@@ -1,9 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/api.dart';
-import '../../core/media.dart';
+import '../../core/item_photo.dart';
 import '../../core/nav.dart';
 import '../../core/orders_models.dart';
 import '../../core/site_chrome.dart';
@@ -156,7 +155,7 @@ class _OrderCard extends StatelessWidget {
                 height: 56,
                 child: ColoredBox(
                   color: Hp.surface2(context),
-                  child: CachedNetworkImage(imageUrl: order.shopImageUrl ?? Media.cover('food', order.id), fit: BoxFit.cover, errorWidget: (_, __, ___) => const SizedBox.shrink()),
+                  child: ItemPhoto(url: order.shopImageUrl, name: order.shopName),
                 ),
               ),
             ),

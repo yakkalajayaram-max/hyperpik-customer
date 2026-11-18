@@ -7,9 +7,12 @@ import 'theme.dart';
 /// food (a pizza standing in for a fish dish), so nothing is drawn that the shop did not provide. A thumbnail too small
 /// to read the name shows its initials instead. Mirrors components/ui/item-photo.tsx on the website.
 class NameTile extends StatelessWidget {
-  const NameTile({super.key, required this.name});
+  const NameTile({super.key, required this.name, this.quiet = false});
 
   final String name;
+
+  /// Smaller text, for a shop card that already prints the name below.
+  final bool quiet;
 
   static String initialsOf(String name) {
     final words = RegExp(r'[\p{L}\p{N}]+', unicode: true).allMatches(name).map((m) => m.group(0)!).take(2);
@@ -34,14 +37,14 @@ class NameTile extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: width * 0.08),
               child: Text(
                 small ? initialsOf(name) : name,
-                maxLines: small ? 1 : 3,
+                maxLines: small ? 1 : (quiet ? 2 : 3),
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: ink,
                   fontWeight: FontWeight.w700,
                   height: small ? 1 : 1.2,
-                  fontSize: small ? (width * 0.34).clamp(13.0, 20.0) : (width * 0.11).clamp(12.0, 28.0),
+                  fontSize: small ? (width * 0.34).clamp(13.0, 20.0) : (quiet ? (width * 0.06).clamp(12.0, 16.0) : (width * 0.11).clamp(12.0, 28.0)),
                 ),
               ),
             ),
@@ -54,21 +57,22 @@ class NameTile extends StatelessWidget {
 
 /// An item's own photo, or its name tile when it has none or the photo cannot be loaded.
 class ItemPhoto extends StatelessWidget {
-  const ItemPhoto({super.key, required this.url, required this.name, this.fit = BoxFit.cover});
+  const ItemPhoto({super.key, required this.url, required this.name, this.fit = BoxFit.cover, this.quiet = false});
 
   final String? url;
   final String name;
   final BoxFit fit;
+  final bool quiet;
 
   @override
   Widget build(BuildContext context) {
     final src = (url ?? '').trim();
-    if (src.isEmpty) return NameTile(name: name);
+    if (src.isEmpty) return NameTile(name: name, quiet: quiet);
     return CachedNetworkImage(
       imageUrl: src,
       fit: fit,
       placeholder: (_, __) => ColoredBox(color: Hp.surface2(context)),
-      errorWidget: (_, __, ___) => NameTile(name: name),
+      errorWidget: (_, __, ___) => NameTile(name: name, quiet: quiet),
     );
   }
 }

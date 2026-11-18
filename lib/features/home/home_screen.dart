@@ -756,18 +756,7 @@ class ShopCard extends StatelessWidget {
     final dim = closed || far;
     final muted = Hp.muted(context);
 
-    Widget thumb = CachedNetworkImage(
-      imageUrl: Media.cover(shop.categoryKey, shop.id, shop.coverUrl),
-      fit: BoxFit.cover,
-      width: 92,
-      height: 92,
-      placeholder: (_, __) => Container(color: Hp.tint(context)),
-      errorWidget: (_, __, ___) => Container(
-        color: Hp.tint(context),
-        alignment: Alignment.center,
-        child: ShopAvatar(name: shop.name, logoUrl: shop.logoUrl, size: 48),
-      ),
-    );
+    Widget thumb = SizedBox(width: 92, height: 92, child: ItemPhoto(url: shop.coverUrl, name: shop.name, quiet: true));
     if (dim) thumb = ColorFiltered(colorFilter: _grey, child: thumb);
 
     final meta = <String>[shop.prepMinutes > 0 ? '${shop.prepMinutes}–${shop.prepMinutes + 10} mins' : 'Quick', if (shop.distanceKm != null) _distanceText(shop.distanceKm!)];
@@ -1177,12 +1166,7 @@ class _PopularShopCard extends StatelessWidget {
                               ColoredBox(color: Hp.surface2(context)),
                               ColorFiltered(
                                 colorFilter: dim ? _greyscale : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
-                                child: CachedNetworkImage(
-                                  imageUrl: Media.cover(shop.categoryKey, shop.id, shop.coverUrl),
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, __) => const SizedBox.shrink(),
-                                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                                ),
+                                child: ItemPhoto(url: shop.coverUrl, name: shop.name, quiet: true),
                               ),
                               if (dim)
                                 Positioned(
@@ -1483,12 +1467,7 @@ class StoreGridCard extends StatelessWidget {
                             ColoredBox(color: Hp.surface2(context)),
                             ColorFiltered(
                               colorFilter: dim ? _greyscale : const ColorFilter.mode(Colors.transparent, BlendMode.dst),
-                              child: CachedNetworkImage(
-                                imageUrl: Media.cover(shop.categoryKey, shop.id, shop.coverUrl),
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) => const SizedBox.shrink(),
-                                errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                              ),
+                              child: ItemPhoto(url: shop.coverUrl, name: shop.name, quiet: true),
                             ),
                             if (shop.category.isNotEmpty)
                               Positioned(

@@ -1,12 +1,10 @@
 import '../reservations/reservations_screens.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/api.dart';
 import '../../core/cart.dart';
 import '../../core/cart_dock.dart';
-import '../../core/media.dart';
 import '../../core/item_photo.dart';
 import '../../core/models.dart';
 import '../../core/place.dart';
@@ -452,7 +450,6 @@ class _ShopInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final faint = Hp.faint(context);
     final sub = (shop.subtitle ?? '').isNotEmpty ? shop.subtitle! : shop.category;
-    final logo = shop.logoUrl ?? Media.cover(shop.categoryKey, shop.id, shop.coverUrl);
     final about = (shop.description ?? '').trim();
     return Container(
       padding: const EdgeInsets.all(16),
@@ -464,7 +461,7 @@ class _ShopInfo extends StatelessWidget {
             height: 64,
             decoration: BoxDecoration(color: Hp.surface2(context), borderRadius: BorderRadius.circular(16)),
             clipBehavior: Clip.antiAlias,
-            child: CachedNetworkImage(imageUrl: logo, fit: BoxFit.cover, errorWidget: (_, __, ___) => const Icon(Icons.storefront, color: Hp.accent)),
+            child: ItemPhoto(url: shop.logoUrl ?? shop.coverUrl, name: shop.name),
           ),
           const SizedBox(width: 16),
           Expanded(
